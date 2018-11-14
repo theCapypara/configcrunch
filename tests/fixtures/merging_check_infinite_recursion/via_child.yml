@@ -1,0 +1,3 @@
+base:
+  $ref: /repo_via_child
+  str_field: str

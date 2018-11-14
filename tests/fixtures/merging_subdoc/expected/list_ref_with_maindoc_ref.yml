@@ -1,0 +1,22 @@
+base:
+    str_field: test
+    level_dict:
+      base_merge:
+        name: level2
+        more:
+          from: base_merge
+      from_base_merge:
+        name: no-merge
+    level_array:
+        - name: level1
+          more:
+            merge_test: false
+        - name: level2
+        - name: level1
+          more:
+            merge_test: true
+        - name: blub
+    level_direct:
+      name: level2
+      more:
+        from: base_merge

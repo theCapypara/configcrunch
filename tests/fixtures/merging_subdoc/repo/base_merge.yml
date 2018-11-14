@@ -1,0 +1,13 @@
+base:
+    str_field: base-merge-test
+    level_dict:
+        base_merge:
+          $ref: /level2
+          more:
+            from: base_merge
+        from_base_merge:
+          name: no-merge
+    level_direct:
+        $ref: /level2
+        more:
+          from: base_merge

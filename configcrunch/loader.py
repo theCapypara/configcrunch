@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, List, Type
 import yaml
 
 from configcrunch import REF
+from configcrunch.errors import InvalidHeaderError
 
 if TYPE_CHECKING:
     from configcrunch.abstract import YamlConfigDocument
@@ -28,8 +29,13 @@ def load_repos(lookup_paths: List[str]) -> List[str]:
             repo_paths.append(os.path.join(os.getcwd(), path[2:]))
             # TODO: use project folder instead of CWD
             # TODO: support later?
+        if path.startswith('/') or path.startswith('\\'):
+            # Absolute Paths
+            # TODO: Windows conversion
+            repo_paths.append(path)
         else:
             # TODO try git
+            # TODO Should not be part of cc
             pass
 
     return repo_paths
@@ -48,7 +54,6 @@ def path_in_repo(base_path: str, reference_path: str) -> str:
         # removes last / and everything after it
         current_path = '/'.join(base_path.split('/')[:-1])
         path = current_path + '/' + reference_path[2:]
-    print("RETURNING PATH IN REPO: ", path, "Base path was: ", base_path)
     return path
 
 
@@ -88,9 +93,15 @@ def load_dicts(path: str) -> List[dict]:
     return doc_dicts
 
 
-def dict_to_doc_cls(doc_dict: dict, doc_cls: 'Type[YamlConfigDocument]', ref_path_in_repo: str) -> 'YamlConfigDocument':
+def dict_to_doc_cls(
+        doc_dict: dict,
+        doc_cls: 'Type[YamlConfigDocument]',
+        ref_path_in_repo: str,
+        already_loaded_docs: List[str]
+) -> 'YamlConfigDocument':
     """
     Converts a loaded dict-object into a specified type of YamlConfigDocument if it's header matches.
+    :param already_loaded_docs: List of already loaded documents for infinite recursion check
     :param doc_dict: source dictionary to be converted
     :param doc_cls: instance of YamlConfigDocument to be created
     :param ref_path_in_repo: Path of this document that should be created inside of the repositories
@@ -98,9 +109,9 @@ def dict_to_doc_cls(doc_dict: dict, doc_cls: 'Type[YamlConfigDocument]', ref_pat
     """
     # resolve document path[s]
     if doc_cls.header() in doc_dict:
-        doc = doc_cls(doc_dict[doc_cls.header()], path=ref_path_in_repo)
+        doc = doc_cls(doc_dict[doc_cls.header()], ref_path_in_repo, already_loaded_docs)
     else:
-        raise Exception("not valid header.")  # TODO better exception!
+        raise InvalidHeaderError("Subdocument of type " + doc_cls.__name__ + " (path: " + ref_path_in_repo + ") has invalid header.")
     return doc
 
 
@@ -111,13 +122,11 @@ def load_referenced_document(document: 'YamlConfigDocument', lookup_paths: List[
     :param lookup_paths: Paths to the repositories, as stored in the configuration documents
     :return:
     """
-    print("LOADING REFERENCED DOCUMENTS IN", document.path, "(", document.__class__.__name__, ")")
     docs = []
     ref_path_in_repo = path_in_repo(document.path, document[REF])
     doc_cls = document.__class__
     for absolute_path in absolute_paths(ref_path_in_repo, lookup_paths):
         for doc_dict in load_dicts(absolute_path):
-            print(">> LOADING REFERENCED DOCUMENT")
-            doc = dict_to_doc_cls(doc_dict, doc_cls, ref_path_in_repo)
+            doc = dict_to_doc_cls(doc_dict, doc_cls, ref_path_in_repo, document.already_loaded_docs)
             docs.append(doc)
     return docs

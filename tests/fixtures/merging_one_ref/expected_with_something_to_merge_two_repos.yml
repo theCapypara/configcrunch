@@ -1,0 +1,8 @@
+base:
+    str_field: hello
+    int_field: 5678
+    more:
+      a: 99
+      b: 22
+      c: 3
+      d: -999

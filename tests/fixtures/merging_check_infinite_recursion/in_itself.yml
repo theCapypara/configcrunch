@@ -1,0 +1,3 @@
+base:
+  $ref: /repo_in_itself
+  str_field: str

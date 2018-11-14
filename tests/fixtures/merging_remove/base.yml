@@ -1,0 +1,20 @@
+base:
+  $ref: /merge
+  int_field: $remove
+  level_dict:
+    invalid_ref:
+      name: Invalid
+      $ref: $remove
+      more:
+        $remove: hello
+    abc:
+      name: abc
+      base_ref:
+        more: $remove
+        level_direct:
+          more: $remove
+      more: $remove
+    remove_me: $remove
+  level_array: $remove
+  more:
+    - $remove

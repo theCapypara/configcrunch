@@ -1,0 +1,3 @@
+base:
+  level_direct:
+    $ref: /repo_level

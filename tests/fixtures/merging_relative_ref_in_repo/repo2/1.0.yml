@@ -1,0 +1,4 @@
+base:
+  int_field: 2
+  more:
+    second_repo_10: yes

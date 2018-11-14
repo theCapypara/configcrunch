@@ -1,0 +1,10 @@
+base:
+    $ref: /base_merge
+    str_field: test
+    level_array:
+        - $ref: /level1
+        - $ref: /level2
+        - $ref: /level1
+          more:
+            merge_test: true
+        - name: blub

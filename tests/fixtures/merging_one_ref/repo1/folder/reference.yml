@@ -1,0 +1,5 @@
+base:
+    int_field: 1234
+    more:
+      b: 2
+      c: -1

@@ -1,0 +1,6 @@
+base:
+    str_field: hello
+    int_field: 5678
+    more:
+      b: 22
+      c: -1

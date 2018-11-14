@@ -1,0 +1,4 @@
+base:
+  str_field: yaml
+  more:
+    b: 1

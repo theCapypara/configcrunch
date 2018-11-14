@@ -1,0 +1,7 @@
+base:
+    str_field: hello
+    int_field: 1234
+    more:
+      a: 1
+      b: 2
+      c: -1

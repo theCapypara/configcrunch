@@ -1,0 +1,3 @@
+level:
+  base_ref:
+    $ref: /repo_via_child

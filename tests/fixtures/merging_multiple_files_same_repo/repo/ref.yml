@@ -1,0 +1,4 @@
+base:
+  str_field: yml
+  more:
+    a: 1

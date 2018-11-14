@@ -1,0 +1,66 @@
+base:
+  level_dict:
+    base:
+      name: base
+      more:
+        one: one
+        two: two
+        three: three
+        one_two: two
+        two_three: three
+    one:
+      name: one
+      more:
+        one: one
+        two: two
+        three: three
+        one_two: two
+        two_three: three
+    two:
+      name: two
+      base_ref:
+        more:
+          one: one
+          two: two
+          three: three
+          one_two: two
+          two_three: three
+          three_base: three
+      more:
+        one: one
+        two: two
+        three: three
+        one_two: two
+        two_three: three
+    three:
+      name: three
+      more:
+        one: one
+        two: two
+        three: three
+        one_two: two
+        two_three: three
+    three_base:
+      name: base
+      more:
+        one: one
+        two: two
+        three: three
+        one_two: two
+        two_three: three
+    two_three:
+      name: three
+      more:
+        one: one
+        two: two
+        three: three
+        one_two: two
+        two_three: three
+    one_two:
+      name: two
+      more:
+        one: one
+        two: two
+        three: three
+        one_two: two
+        two_three: three

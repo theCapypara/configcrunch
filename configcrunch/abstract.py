@@ -6,7 +6,8 @@ from typing import List, Type
 
 from configcrunch import REF
 from configcrunch.interface import IYamlConfigDocument
-from configcrunch.merger import resolve_and_merge
+from configcrunch.merger import resolve_and_merge, recursive_docs_to_dicts
+from configcrunch.errors import InvalidHeaderError, CircularDependencyError
 
 
 def variable_helper(funcobj):
@@ -23,7 +24,7 @@ class YamlConfigDocument(IYamlConfigDocument, ABC):
     can contain references to other (sub-)documents, which can be resolved,
     and variables that can be parsed.
     """
-    def __init__(self, document: dict, path=None):
+    def __init__(self, document: dict, path=None, already_loaded_docs=None):
         """
         Constructs a YamlConfigDocument
         :param document: The document as a dict, without the header.
@@ -33,8 +34,19 @@ class YamlConfigDocument(IYamlConfigDocument, ABC):
         self.doc = document
         self.path = path
 
+        """ Infinite recursion check """
+        if already_loaded_docs is not None and self.path is not None:
+            if self.path in already_loaded_docs:
+                raise CircularDependencyError("Infinite circular reference detected while trying to load " + self.path)
+            self.already_loaded_docs = already_loaded_docs.copy()
+            self.already_loaded_docs.append(self.path)
+        elif already_loaded_docs is not None:
+            self.already_loaded_docs = already_loaded_docs.copy()
+        else:
+            self.already_loaded_docs = []
+
     @classmethod
-    def from_yaml(cls, path_to_yaml: str):
+    def from_yaml(cls, path_to_yaml: str) -> 'YamlConfigDocument':
         """
         Constructs a YamlConfigDocument from a YAML-file. Expects the content to be
         a dictionary with one key defined in the header method and it's value is
@@ -46,7 +58,7 @@ class YamlConfigDocument(IYamlConfigDocument, ABC):
             entire_document = yaml.load(stream)
         # The document must start with a header matching it's class
         if cls.header() not in entire_document:
-            raise Exception("not valid header.")  # TODO better exception!
+            raise InvalidHeaderError("The document does not have a valid header. Expected was: " + cls.header())
         body = entire_document[cls.header()]
         return cls(body)
 
@@ -112,6 +124,9 @@ class YamlConfigDocument(IYamlConfigDocument, ABC):
 
     def items(self):
         return self.doc.items()
+
+    def to_dict(self):
+        return recursive_docs_to_dicts({self.header(): self.doc.copy()})
 
 
 class DocReference(object):

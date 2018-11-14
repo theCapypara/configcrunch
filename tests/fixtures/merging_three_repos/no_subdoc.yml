@@ -1,0 +1,5 @@
+base:
+  $ref: /base_ref
+  more:
+    base: base
+    three_base: base

@@ -14,6 +14,7 @@ from typing import TYPE_CHECKING
 
 from configcrunch.interface import IYamlConfigDocument
 from configcrunch.loader import load_referenced_document
+from configcrunch.errors import ReferencedDocumentNotFound
 
 if TYPE_CHECKING:
     from configcrunch.abstract import YamlConfigDocument
@@ -67,6 +68,7 @@ def merge_documents(target: 'YamlConfigDocument', source: 'YamlConfigDocument') 
     """
     newdoc = _merge_documents__recursion(source.doc, target.doc)
     target.doc = newdoc
+    target.already_loaded_docs += source.already_loaded_docs
 
 
 def resolve_and_merge(doc: 'YamlConfigDocument', lookup_paths: List[str]) -> None:
@@ -87,7 +89,7 @@ def resolve_and_merge(doc: 'YamlConfigDocument', lookup_paths: List[str]) -> Non
                 merge_documents(referenced_doc, prev_referenced_doc)
             prev_referenced_doc = referenced_doc
         if prev_referenced_doc is None:
-            raise Exception("Referenced document not found")  # todo
+            raise ReferencedDocumentNotFound("Referenced document " + doc[REF] + " not found")
         # Resolve entire referenced docs
         resolve_and_merge(prev_referenced_doc, lookup_paths)
         # Merge content of current doc into referenced doc (and execute $remove's on the way)
@@ -98,26 +100,42 @@ def resolve_and_merge(doc: 'YamlConfigDocument', lookup_paths: List[str]) -> Non
 
 def load_subdocument(
         doc: 'Union[dict, YamlConfigDocument]',
-        doc_path: Union[None, str],
+        source_doc: 'YamlConfigDocument',
         doc_clss: 'Type[YamlConfigDocument]',
-        lookup_paths: List[str]
+        lookup_paths: List[str],
 ) -> 'YamlConfigDocument':
     """
     Load a subdocument of a specific type. This will convert the dict at this position
     into a YamlConfigDocument with the matching type and perform resolve_and_merge_references
     on it.
     :param doc: Dictionary with data to convert. Can also already be a document of the target type.
-    :param doc_path: Path of the parent document.
+    :param source_doc: Parent document
     :param doc_clss: Class that is expected from the subdocument (target class)
     :param lookup_paths: Paths to the repositories, where referenced should be looked up.
     :return:
     """
     doc_obj = doc
     if not isinstance(doc, doc_clss):
-        print("LOADING INTERNAL SUB DOC:")
-        doc_obj = doc_clss(doc, doc_path)
+        doc_obj = doc_clss(doc, source_doc.path, source_doc.already_loaded_docs)
+
     return doc_obj.resolve_and_merge_references(lookup_paths)
 
+
+def recursive_docs_to_dicts(input):
+    """ Recursively removes all YamlConfigDocuments and replaces them by their doc dictionary."""
+    if isinstance(input, IYamlConfigDocument):
+        return recursive_docs_to_dicts(input.doc.copy())
+    elif isinstance(input, dict):
+        new_dict = input.copy()
+        for key, val in new_dict.items():
+            new_dict[key] = recursive_docs_to_dicts(val)
+        return new_dict
+    elif isinstance(input, list):
+        new_list = []
+        for item in input.copy():
+            new_list.append(recursive_docs_to_dicts(item))
+        return new_list
+    return input
 
 """
 Algo (so hab ich ihn hoffentlich auch):

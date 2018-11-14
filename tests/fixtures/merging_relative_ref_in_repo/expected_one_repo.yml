@@ -1,0 +1,8 @@
+base:
+  str_field: hi
+  int_field: 1
+  more:
+    base: base
+    version: base
+    from_10: yes
+    from_folder_base: yes

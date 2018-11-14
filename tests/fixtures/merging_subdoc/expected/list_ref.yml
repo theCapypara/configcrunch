@@ -1,0 +1,11 @@
+base:
+    str_field: test
+    level_array:
+        - name: level1
+          more:
+            merge_test: false
+        - name: level2
+        - name: level1
+          more:
+            merge_test: true
+        - name: blub

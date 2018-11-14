@@ -1,0 +1,5 @@
+base:
+    $ref: /folder/reference
+    str_field: hello
+    more:
+      a: 1

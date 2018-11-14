@@ -1,0 +1,16 @@
+base:
+    str_field: merge-success
+    level_dict:
+        invalid_ref:
+          name: Invalid
+          more:
+            $remove: hello
+        abc:
+          name: abc
+          base_ref:
+            level_direct:
+                name: level2
+    more:
+      - 1
+      - 2
+      - $remove

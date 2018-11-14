@@ -1,0 +1,12 @@
+base:
+    $ref: /base_merge
+    str_field: test
+    level_dict:
+        no_merge:
+          $ref: /level1
+        merge:
+          $ref: /level1
+          more:
+            merge_test: true
+        no_ref:
+          name: no-ref

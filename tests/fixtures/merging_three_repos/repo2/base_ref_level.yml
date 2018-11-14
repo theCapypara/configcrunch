@@ -1,0 +1,11 @@
+base:
+  level_dict:
+    two:
+      $ref: /level_ref
+      name: two
+    two_three:
+      $ref: /level_ref
+      name: two
+    one_two:
+      $ref: /level_ref
+      name: two

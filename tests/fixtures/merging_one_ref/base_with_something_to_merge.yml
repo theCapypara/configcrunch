@@ -1,0 +1,6 @@
+base:
+    $ref: /folder/reference
+    str_field: hello
+    int_field: 5678
+    more:
+      b: 22

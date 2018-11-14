@@ -1,0 +1,4 @@
+base:
+  str_field: hi-you
+  more:
+    second_repo_folder_base: yes

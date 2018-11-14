@@ -1,0 +1,6 @@
+base:
+    str_field: test
+    level_direct:
+        name: level1
+        more:
+          merge_test: true

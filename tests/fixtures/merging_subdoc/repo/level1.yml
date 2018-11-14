@@ -1,0 +1,4 @@
+level:
+    name: level1
+    more:
+        merge_test: false
