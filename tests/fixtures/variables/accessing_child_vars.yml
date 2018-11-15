@@ -1,0 +1,9 @@
+base:
+  str_field: "{{ level_direct.name }}"
+  level_direct:
+    name: "{{ more.name }}"
+    more:
+      name: Name of Level
+  more:
+    name: Name of Base
+    copy: "{{ level_direct.name }}"

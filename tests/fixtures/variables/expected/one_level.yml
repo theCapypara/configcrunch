@@ -1,0 +1,8 @@
+base:
+  str_field: b
+  int_field: 12
+  more:
+    a: b
+    b: b
+    c: 12.0
+    in_text: "This is the alphabet: a b c d"

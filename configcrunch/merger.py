@@ -116,7 +116,7 @@ def load_subdocument(
     """
     doc_obj = doc
     if not isinstance(doc, doc_clss):
-        doc_obj = doc_clss(doc, source_doc.path, source_doc.already_loaded_docs)
+        doc_obj = doc_clss(doc, source_doc.path, source_doc, source_doc.already_loaded_docs)
 
     return doc_obj.resolve_and_merge_references(lookup_paths)
 

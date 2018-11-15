@@ -42,8 +42,16 @@ class ConfigcrunchTestCase(unittest.TestCase, ABC):
         base.resolve_and_merge_references(abs_lookup_paths)
         return base
 
-    def assertDocEqual(self, expected_yml_file, input_yml_file, repo_folder_names):
+    def assertDocEqualMerging(self, expected_yml_file, input_yml_file, repo_folder_names):
         doc = self.load_base(input_yml_file, repo_folder_names)
+        expected_result = self.fix_get_yml(expected_yml_file)
+
+        self.assertDictEqual(deep_sort(expected_result), deep_sort(doc.to_dict()))
+        self.assertValidDoc(doc)
+
+    def assertDocEqualVariables(self, expected_yml_file, input_yml_file):
+        doc = self.load_base(input_yml_file, [])
+        doc.process_vars()
         expected_result = self.fix_get_yml(expected_yml_file)
 
         self.assertDictEqual(deep_sort(expected_result), deep_sort(doc.to_dict()))

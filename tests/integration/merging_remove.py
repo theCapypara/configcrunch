@@ -7,7 +7,7 @@ class MergingRemove(ConfigcrunchTestCase):
         return 'merging_remove'
 
     def test_dict_ref(self):
-        self.assertDocEqual(
+        self.assertDocEqualMerging(
             'expected.yml',
             'base.yml',
             ['repo']

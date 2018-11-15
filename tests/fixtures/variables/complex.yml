@@ -1,0 +1,16 @@
+base:
+  level_dict:
+    a:
+      name: "{{ parent().more.source }}"
+      more:
+        a: "{{ level_helper() }}"
+    b:
+      name: "{{ parent().simple_helper() }}"
+      more:
+        a: "{{ parent().more.source|upper }}" # Jinja2 filter
+  more:
+    source: source
+    a: "{{ level_dict.a.parent().more.source }}"
+    b: "{{ level_dict.a.parent().simple_helper() }}"
+    c: "{{ level_dict.a.level_helper() }}"
+    d: "{{ level_dict.a.parent().level_dict.b.level_helper() }}"

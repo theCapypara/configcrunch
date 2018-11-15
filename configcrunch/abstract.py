@@ -1,3 +1,4 @@
+import inspect
 from abc import ABC, abstractmethod
 
 import yaml
@@ -8,14 +9,14 @@ from configcrunch import REF
 from configcrunch.interface import IYamlConfigDocument
 from configcrunch.merger import resolve_and_merge, recursive_docs_to_dicts
 from configcrunch.errors import InvalidHeaderError, CircularDependencyError
-
-
-def variable_helper(funcobj):
-    funcobj.__is_variable_helper = True
-    return funcobj
-
+from configcrunch.variables import process_variables
 
 DUMP_FOR_REPR = False
+
+
+def variable_helper(func):
+    func.__is_variable_helper = True
+    return func
 
 
 class YamlConfigDocument(IYamlConfigDocument, ABC):
@@ -24,7 +25,13 @@ class YamlConfigDocument(IYamlConfigDocument, ABC):
     can contain references to other (sub-)documents, which can be resolved,
     and variables that can be parsed.
     """
-    def __init__(self, document: dict, path=None, already_loaded_docs=None):
+    def __init__(
+            self,
+            document: dict,
+            path: str= None,
+            parent: 'YamlConfigDocument'= None,
+            already_loaded_docs: List[str]= None
+    ):
         """
         Constructs a YamlConfigDocument
         :param document: The document as a dict, without the header.
@@ -33,17 +40,11 @@ class YamlConfigDocument(IYamlConfigDocument, ABC):
         """
         self.doc = document
         self.path = path
+        self.bound_helpers = []
+        self.parent_doc = parent
 
-        """ Infinite recursion check """
-        if already_loaded_docs is not None and self.path is not None:
-            if self.path in already_loaded_docs:
-                raise CircularDependencyError("Infinite circular reference detected while trying to load " + self.path)
-            self.already_loaded_docs = already_loaded_docs.copy()
-            self.already_loaded_docs.append(self.path)
-        elif already_loaded_docs is not None:
-            self.already_loaded_docs = already_loaded_docs.copy()
-        else:
-            self.already_loaded_docs = []
+        self.__infinite_recursion_check(already_loaded_docs)
+        self.__collect_bound_variable_helpers()
 
     @classmethod
     def from_yaml(cls, path_to_yaml: str) -> 'YamlConfigDocument':
@@ -94,12 +95,34 @@ class YamlConfigDocument(IYamlConfigDocument, ABC):
         All references must be resolved beforehand to work correctly (resolve_and_merge_references).
         Changes this document in place.
         """
-        pass  # todo
+        process_variables(self)
+        return self
 
     @variable_helper
-    def parent(self) -> 'YamlConfigDocument':
+    def parent(self) -> dict:
         """ A helper function that can be used by variable-placeholders to the get the parent document (if any) """
-        pass  # todo
+        if self.parent_doc:
+            return self.parent_doc
+        else:
+            return self
+
+    def __collect_bound_variable_helpers(self):
+        """ Loads bound variable helper methods to this instance for use in jinja2 variable processing """
+        for name, method in inspect.getmembers(self, predicate=inspect.ismethod):
+            if hasattr(method, "__is_variable_helper"):
+                self.bound_helpers.append(method)
+
+    def __infinite_recursion_check(self, already_loaded_docs: List[str]):
+        """ Infinite recursion check """
+        if already_loaded_docs is not None and self.path is not None:
+            if self.path in already_loaded_docs:
+                raise CircularDependencyError("Infinite circular reference detected while trying to load " + self.path)
+            self.already_loaded_docs = already_loaded_docs.copy()
+            self.already_loaded_docs.append(self.path)
+        elif already_loaded_docs is not None:
+            self.already_loaded_docs = already_loaded_docs.copy()
+        else:
+            self.already_loaded_docs = []
 
     def __repr__(self) -> str:
         return str(self)

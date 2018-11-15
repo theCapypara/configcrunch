@@ -9,3 +9,4 @@ from .merging_three_repos import *
 from .merging_relative_ref_in_repo import *
 from .merging_check_infinite_recursion import *
 from .negative_validation import *
+from .variables import *

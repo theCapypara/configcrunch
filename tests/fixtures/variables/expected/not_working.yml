@@ -1,0 +1,22 @@
+base:
+  level_dict:
+    doc1:
+      name: doc1
+      more:
+        name: doc1
+    doc2:
+      name: test
+      more:
+        name: test
+        doc1: doc1
+        doc2: test
+        doc3: test # "BUG"! See test. -- Because {{ parent().level_dict.doc3.name }} -> {{ more.name }} -> test
+        parent_a: "" # "BUG"! See test.
+    doc3:
+      name: doc3
+      more:
+        name: doc3
+
+  more:
+    a: b
+    b: b

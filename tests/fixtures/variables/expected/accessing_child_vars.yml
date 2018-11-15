@@ -1,0 +1,9 @@
+base:
+  str_field: Name of Level
+  level_direct:
+    name: Name of Level
+    more:
+      name: Name of Level
+  more:
+    name: Name of Base
+    copy: Name of Level

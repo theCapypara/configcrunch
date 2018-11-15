@@ -8,5 +8,6 @@ setup(
     install_requires=[
         'schema >= 0.6',
         'pyyaml >= 3.13',
+        'jinja2 >= 2.10'
     ]
 )

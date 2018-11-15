@@ -1,0 +1,16 @@
+base:
+  level_dict:
+    a:
+      name: source
+      more:
+        a: level
+    b:
+      name: simple
+      more:
+        a: SOURCE
+  more:
+    source: source
+    a: source
+    b: simple
+    c: level
+    d: level

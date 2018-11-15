@@ -1,0 +1,22 @@
+base:
+  level_dict:
+    doc1:
+      name: "{{ more.name }}"
+      more:
+        name: doc1
+    doc2:
+      name: "{{ more.name }}"
+      more:
+        name: test
+        doc1: "{{ parent().level_dict.doc1.name }}"
+        doc2: "{{ name }}"
+        doc3: "{{ parent().level_dict.doc3.name }}"
+        parent_a: "{{ parent().more.a }}"
+    doc3:
+      name: "{{ more.name }}"
+      more:
+        name: doc3
+
+  more:
+    a: "{{ more.b }}"
+    b: b

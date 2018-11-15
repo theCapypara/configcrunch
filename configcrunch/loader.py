@@ -97,19 +97,19 @@ def dict_to_doc_cls(
         doc_dict: dict,
         doc_cls: 'Type[YamlConfigDocument]',
         ref_path_in_repo: str,
-        already_loaded_docs: List[str]
+        parent: 'YamlConfigDocument'
 ) -> 'YamlConfigDocument':
     """
     Converts a loaded dict-object into a specified type of YamlConfigDocument if it's header matches.
-    :param already_loaded_docs: List of already loaded documents for infinite recursion check
     :param doc_dict: source dictionary to be converted
     :param doc_cls: instance of YamlConfigDocument to be created
     :param ref_path_in_repo: Path of this document that should be created inside of the repositories
+    :param parent: parent document
     :return: instance of YamlConfigDocument containing doc_dict without the header
     """
     # resolve document path[s]
     if doc_cls.header() in doc_dict:
-        doc = doc_cls(doc_dict[doc_cls.header()], ref_path_in_repo, already_loaded_docs)
+        doc = doc_cls(doc_dict[doc_cls.header()], ref_path_in_repo, parent, parent.already_loaded_docs)
     else:
         raise InvalidHeaderError("Subdocument of type " + doc_cls.__name__ + " (path: " + ref_path_in_repo + ") has invalid header.")
     return doc
@@ -127,6 +127,6 @@ def load_referenced_document(document: 'YamlConfigDocument', lookup_paths: List[
     doc_cls = document.__class__
     for absolute_path in absolute_paths(ref_path_in_repo, lookup_paths):
         for doc_dict in load_dicts(absolute_path):
-            doc = dict_to_doc_cls(doc_dict, doc_cls, ref_path_in_repo, document.already_loaded_docs)
+            doc = dict_to_doc_cls(doc_dict, doc_cls, ref_path_in_repo, document)
             docs.append(doc)
     return docs

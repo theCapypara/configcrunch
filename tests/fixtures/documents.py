@@ -7,6 +7,7 @@ from typing import List
 from schema import Schema, Optional
 
 from configcrunch import YamlConfigDocument, DocReference, load_subdocument
+from configcrunch.abstract import variable_helper
 
 
 class Base(YamlConfigDocument):
@@ -60,6 +61,10 @@ class Base(YamlConfigDocument):
             self["level_direct"] = load_subdocument(self["level_direct"], self, Level, lookup_paths)
         return self
 
+    @variable_helper
+    def simple_helper(self):
+        return "simple"
+
 
 class Level(YamlConfigDocument):
     """
@@ -92,6 +97,10 @@ class Level(YamlConfigDocument):
         if "base_ref" in self:
             self["base_ref"] = load_subdocument(self["base_ref"], self, Base, lookup_paths)
         return self
+
+    @variable_helper
+    def level_helper(self):
+        return "level"
 
 
 """

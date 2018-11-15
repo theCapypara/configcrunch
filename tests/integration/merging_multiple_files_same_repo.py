@@ -7,7 +7,7 @@ class MergingMultipleFilesSameRepo(ConfigcrunchTestCase):
         return 'merging_multiple_files_same_repo'
 
     def test_same(self):
-        self.assertDocEqual(
+        self.assertDocEqualMerging(
             'expected.yml',
             'base.yml',
             ['repo']
