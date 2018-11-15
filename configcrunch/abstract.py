@@ -99,7 +99,7 @@ class YamlConfigDocument(IYamlConfigDocument, ABC):
         return self
 
     @variable_helper
-    def parent(self) -> dict:
+    def parent(self) -> 'YamlConfigDocument':
         """ A helper function that can be used by variable-placeholders to the get the parent document (if any) """
         if self.parent_doc:
             return self.parent_doc
