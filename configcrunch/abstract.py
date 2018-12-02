@@ -2,7 +2,7 @@ import inspect
 from abc import ABC, abstractmethod
 
 import yaml
-from schema import Schema, SchemaError
+from schema import Schema,  SchemaError
 from typing import List, Type
 
 from configcrunch import REF
