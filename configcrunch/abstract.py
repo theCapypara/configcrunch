@@ -9,7 +9,7 @@ from configcrunch import REF
 from configcrunch.interface import IYamlConfigDocument
 from configcrunch.merger import resolve_and_merge, recursive_docs_to_dicts
 from configcrunch.errors import InvalidHeaderError, CircularDependencyError
-from configcrunch.variables import process_variables
+from configcrunch.variables import process_variables, process_variables_for
 
 DUMP_FOR_REPR = False
 
@@ -46,6 +46,8 @@ class YamlConfigDocument(IYamlConfigDocument, ABC):
         self.__infinite_recursion_check(already_loaded_docs)
         self.__collect_bound_variable_helpers()
 
+        self._initialize_data()
+
     @classmethod
     def from_yaml(cls, path_to_yaml: str) -> 'YamlConfigDocument':
         """
@@ -78,6 +80,10 @@ class YamlConfigDocument(IYamlConfigDocument, ABC):
         """ Validates the document against the Schema. """
         return self.schema().validate(self.doc)
 
+    def _initialize_data(self):
+        """ May be used to initialize the document by adding / changing data. Called after constructor. """
+        pass
+
     def resolve_and_merge_references(self, lookup_paths: List[str]) -> 'YamlConfigDocument':
         """
         Resolve the $ref entry at the beginning of the document body and merge with referenced documents
@@ -97,6 +103,13 @@ class YamlConfigDocument(IYamlConfigDocument, ABC):
         """
         process_variables(self)
         return self
+
+    def process_vars_for(self, target: str) -> str:
+        """
+        Process all {{ variables }} inside the specified string as if it were part of this document.
+        All references must be resolved beforehand to work correctly (resolve_and_merge_references).
+        """
+        return process_variables_for(self, target)
 
     @variable_helper
     def parent(self) -> 'YamlConfigDocument':

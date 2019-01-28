@@ -45,14 +45,7 @@ def apply_variable_resolution(input_str: str, document: 'YamlConfigDocument'):
     for helper in document.bound_helpers:
         template.globals[helper.__name__] = helper
 
-    new_value = template.render(document.doc)
-    # Try to convert to number if it is one, and silently fail if not possible, which will keep
-    # new_value being a string
-    try:
-        new_value = float(new_value)
-    except ValueError:
-        pass
-    return new_value
+    return template.render(document.doc)
 
 
 def __process_variables_for_subdoc(traverse: DocumentTraverser, input_node: any) -> any:
@@ -96,6 +89,10 @@ def process_variables(ycd: 'YamlConfigDocument'):
         traverse.run_callback(__process_variables_current_doc, ycd.doc, ycd)
         still_has_variables = traverse.something_changed
     return ycd
+
+
+def process_variables_for(ycd: 'YamlConfigDocument', target: str):
+    return apply_variable_resolution(target, ycd)
 
 # http://jinja.pocoo.org/docs/2.10/api/
 # http://jinja.pocoo.org/docs/2.10/api/#jinja2.runtime.Context
