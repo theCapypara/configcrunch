@@ -42,9 +42,9 @@ def _merge_documents__recursion(target_node: any, source_node: any) -> any:
 
     # IS LIST IN SOURCE AND TARGET
     elif isinstance(source_node, list) and isinstance(target_node, list):
-        old_list = set(source_node)
-        add_list = set(target_node)
-        return list(old_list | add_list)
+        result = list(target_node)
+        result.extend(x for x in source_node if x not in target_node)
+        return result
 
     # IS YCD IN SOURCE AND TARGET
     elif isinstance(source_node, IYamlConfigDocument) and isinstance(target_node, IYamlConfigDocument):

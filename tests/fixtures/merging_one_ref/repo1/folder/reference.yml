@@ -3,3 +3,6 @@ base:
     more:
       b: 2
       c: -1
+      list_with_dict:
+        - hello: world
+          how: are you today

@@ -6,3 +6,7 @@ base:
       b: 22
       c: 3
       d: -999
+      list_with_dict:
+        - hello: world
+          how: are you today
+        - thanks: i am fine
