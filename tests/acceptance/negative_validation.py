@@ -2,7 +2,7 @@ from schema import SchemaError
 
 from configcrunch import ReferencedDocumentNotFound
 from tests.fixtures.documents import Base
-from tests.integration.testcases import ConfigcrunchTestCase
+from tests.acceptance.testcases import ConfigcrunchTestCase
 
 
 class NegativeValidation(ConfigcrunchTestCase):

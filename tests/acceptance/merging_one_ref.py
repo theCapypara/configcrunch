@@ -1,4 +1,4 @@
-from tests.integration.testcases import ConfigcrunchTestCase
+from tests.acceptance.testcases import ConfigcrunchTestCase
 
 
 class MergingOneRef(ConfigcrunchTestCase):

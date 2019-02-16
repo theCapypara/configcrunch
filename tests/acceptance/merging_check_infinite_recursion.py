@@ -1,6 +1,6 @@
 from configcrunch import CircularDependencyError
 from tests.fixtures.documents import Base
-from tests.integration.testcases import ConfigcrunchTestCase
+from tests.acceptance.testcases import ConfigcrunchTestCase
 
 
 class MergingCheckRefNotFound(ConfigcrunchTestCase):
