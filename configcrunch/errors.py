@@ -1,14 +1,18 @@
-class InvalidHeaderError(Exception):
+class ConfigcrunchError(Exception):
     pass
 
 
-class ReferencedDocumentNotFound(Exception):
+class InvalidHeaderError(ConfigcrunchError):
     pass
 
 
-class CircularDependencyError(Exception):
+class ReferencedDocumentNotFound(ConfigcrunchError):
     pass
 
 
-class VariableProcessingError(Exception):
+class CircularDependencyError(ConfigcrunchError):
+    pass
+
+
+class VariableProcessingError(ConfigcrunchError):
     pass

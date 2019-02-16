@@ -46,7 +46,7 @@ class YamlConfigDocument(IYamlConfigDocument, ABC):
         self.__infinite_recursion_check(already_loaded_docs)
         self.__collect_bound_variable_helpers()
 
-        self._initialize_data()
+        self._initialize_data_before_merge()
 
     @classmethod
     def from_yaml(cls, path_to_yaml: str) -> 'YamlConfigDocument':
@@ -80,8 +80,27 @@ class YamlConfigDocument(IYamlConfigDocument, ABC):
         """ Validates the document against the Schema. """
         return self.schema().validate(self.doc)
 
-    def _initialize_data(self):
-        """ May be used to initialize the document by adding / changing data. Called after constructor. """
+    def _initialize_data_before_merge(self):
+        """
+        May be used to initialize the document by adding / changing data. Called after constructor.
+        Use this for internal values that need to be merged like other values. DO NOT use this to
+        set default values, as this will result in unexpected values after the merging process.
+        Use _initialize_data_after_merge for these values.
+        """
+        pass
+
+    def _initialize_data_after_merge(self):
+        """ May be used to initialize the document by adding / changing data.
+        Called after resolve_and_merge_references.
+        Use this for setting default values.
+        """
+        pass
+
+    def _initialize_data_after_variables(self):
+        """
+        May be used to initialize the document by adding / changing data. Called after process_vars.
+        Use this for setting internal values based on processed values in the document.
+        """
         pass
 
     def resolve_and_merge_references(self, lookup_paths: List[str]) -> 'YamlConfigDocument':
@@ -93,6 +112,7 @@ class YamlConfigDocument(IYamlConfigDocument, ABC):
         :return:
         """
         resolve_and_merge(self, lookup_paths)
+        self._initialize_data_after_merge()
         return self
 
     def process_vars(self) -> 'YamlConfigDocument':
@@ -102,6 +122,7 @@ class YamlConfigDocument(IYamlConfigDocument, ABC):
         Changes this document in place.
         """
         process_variables(self)
+        self._initialize_data_after_variables()
         return self
 
     def process_vars_for(self, target: str) -> str:
