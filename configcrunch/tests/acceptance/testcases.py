@@ -5,7 +5,7 @@ from abc import abstractmethod, ABC
 
 import yaml
 from schema import SchemaError
-from tests.fixtures.documents import Base
+from configcrunch.tests.fixtures.documents import Base
 
 
 unittest.util._MAX_LENGTH = 2000

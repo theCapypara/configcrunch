@@ -1,4 +1,4 @@
-from tests.acceptance.testcases import ConfigcrunchTestCase
+from configcrunch.tests.acceptance.testcases import ConfigcrunchTestCase
 
 
 class MergingThreeRepos(ConfigcrunchTestCase):

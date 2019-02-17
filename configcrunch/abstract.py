@@ -30,13 +30,17 @@ class YamlConfigDocument(IYamlConfigDocument, ABC):
             document: dict,
             path: str= None,
             parent: 'YamlConfigDocument'= None,
-            already_loaded_docs: List[str]= None
+            already_loaded_docs: List[str]= None,
+            dont_call_init_data= False
     ):
         """
         Constructs a YamlConfigDocument
         :param document: The document as a dict, without the header.
         :param path: Path of the document absolute to the configured repositories.
                      If this is not from a repo, leave at None.
+        :type parent: Parent document
+        :type already_loaded_docs: List of paths to already loaded documents (internal use)
+        :type dont_call_init_data: bool Skip calling _initialize_data_before_merge, for use in tests
         """
         self.doc = document
         self.path = path
@@ -46,7 +50,8 @@ class YamlConfigDocument(IYamlConfigDocument, ABC):
         self.__infinite_recursion_check(already_loaded_docs)
         self.__collect_bound_variable_helpers()
 
-        self._initialize_data_before_merge()
+        if not dont_call_init_data:
+            self._initialize_data_before_merge()
 
     @classmethod
     def from_yaml(cls, path_to_yaml: str) -> 'YamlConfigDocument':

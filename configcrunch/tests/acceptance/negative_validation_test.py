@@ -1,8 +1,8 @@
 from schema import SchemaError
 
 from configcrunch import ReferencedDocumentNotFound
-from tests.fixtures.documents import Base
-from tests.acceptance.testcases import ConfigcrunchTestCase
+from configcrunch.tests.fixtures.documents import Base
+from configcrunch.tests.acceptance.testcases import ConfigcrunchTestCase
 
 
 class NegativeValidation(ConfigcrunchTestCase):
