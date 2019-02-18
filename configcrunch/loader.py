@@ -96,6 +96,7 @@ def load_dicts(path: str) -> List[dict]:
 def dict_to_doc_cls(
         doc_dict: dict,
         doc_cls: 'Type[YamlConfigDocument]',
+        absolute_path: str,
         ref_path_in_repo: str,
         parent: 'YamlConfigDocument'
 ) -> 'YamlConfigDocument':
@@ -109,7 +110,7 @@ def dict_to_doc_cls(
     """
     # resolve document path[s]
     if doc_cls.header() in doc_dict:
-        doc = doc_cls(doc_dict[doc_cls.header()], ref_path_in_repo, parent, parent.already_loaded_docs)
+        doc = doc_cls(doc_dict[doc_cls.header()], ref_path_in_repo, parent, parent.already_loaded_docs, absolute_path=absolute_path)
     else:
         raise InvalidHeaderError("Subdocument of type " + doc_cls.__name__ + " (path: " + ref_path_in_repo + ") has invalid header.")
     return doc
@@ -127,6 +128,6 @@ def load_referenced_document(document: 'YamlConfigDocument', lookup_paths: List[
     doc_cls = document.__class__
     for absolute_path in absolute_paths(ref_path_in_repo, lookup_paths):
         for doc_dict in load_dicts(absolute_path):
-            doc = dict_to_doc_cls(doc_dict, doc_cls, ref_path_in_repo, document)
+            doc = dict_to_doc_cls(doc_dict, doc_cls, absolute_path, ref_path_in_repo, document)
             docs.append(doc)
     return docs

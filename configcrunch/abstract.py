@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 
 import yaml
 from schema import Schema,  SchemaError
-from typing import List, Type
+from typing import List, Type, Union
 
 from configcrunch import REF
 from configcrunch.interface import IYamlConfigDocument
@@ -31,10 +31,12 @@ class YamlConfigDocument(IYamlConfigDocument, ABC):
             path: str= None,
             parent: 'YamlConfigDocument'= None,
             already_loaded_docs: List[str]= None,
-            dont_call_init_data= False
+            dont_call_init_data= False,
+            absolute_path=None
     ):
         """
         Constructs a YamlConfigDocument
+        :type absolute_path: absolute path on disk to this YCD
         :param document: The document as a dict, without the header.
         :param path: Path of the document absolute to the configured repositories.
                      If this is not from a repo, leave at None.
@@ -46,6 +48,8 @@ class YamlConfigDocument(IYamlConfigDocument, ABC):
         self.path = path
         self.bound_helpers = []
         self.parent_doc = parent
+        # Absolute path to this YCD. Warning: This is also merged. Value points to top document after merge
+        self.absolute_path = absolute_path
 
         self.__infinite_recursion_check(already_loaded_docs)
         self.__collect_bound_variable_helpers()
@@ -68,7 +72,7 @@ class YamlConfigDocument(IYamlConfigDocument, ABC):
         if cls.header() not in entire_document:
             raise InvalidHeaderError("The document does not have a valid header. Expected was: " + cls.header())
         body = entire_document[cls.header()]
-        return cls(body)
+        return cls(body, absolute_path=path_to_yaml)
 
     @classmethod
     @abstractmethod
