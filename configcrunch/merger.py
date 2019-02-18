@@ -32,7 +32,8 @@ def _merge_documents__recursion(target_node: any, source_node: any) -> any:
         new_node = target_node.copy()
         for key, value in source_node.items():
             if value == REMOVE:
-                del new_node[key]
+                if key in new_node:
+                    del new_node[key]
             else:
                 if key in target_node:
                     new_node[key] = _merge_documents__recursion(target_node[key], source_node[key])
