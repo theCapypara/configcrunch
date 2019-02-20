@@ -1,0 +1,4 @@
+base:
+  i_am: valid
+  level_direct:
+    $ref: /level_empty

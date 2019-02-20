@@ -4,12 +4,13 @@ Should not be used outside the library.
 """
 
 import os
+from pathlib import PurePosixPath, Path
 from typing import TYPE_CHECKING, List, Type
 
 import yaml
 
 from configcrunch import REF
-from configcrunch.errors import InvalidHeaderError
+from configcrunch.errors import InvalidHeaderError, InvalidDocumentError
 
 if TYPE_CHECKING:
     from configcrunch.abstract import YamlConfigDocument
@@ -48,13 +49,9 @@ def path_in_repo(base_path: str, reference_path: str) -> str:
     :param reference_path: Entry in $ref field.
     :return: final path inside the repositories
     """
-    # TODO ../ paths
-    path = reference_path.lstrip('/')
-    if reference_path.startswith('./') and base_path is not None:
-        # removes last / and everything after it
-        current_path = '/'.join(base_path.split('/')[:-1])
-        path = current_path + '/' + reference_path[2:]
-    return path
+    if base_path:
+        return str(PurePosixPath('/').joinpath(PurePosixPath(base_path).parent).joinpath(reference_path))
+    return reference_path
 
 
 def absolute_paths(ref_path_in_repo: str, lookup_paths: List[str]) -> List[str]:
@@ -67,7 +64,7 @@ def absolute_paths(ref_path_in_repo: str, lookup_paths: List[str]) -> List[str]:
     """
     paths = []
     for absolute_repo_path in load_repos(lookup_paths):
-        paths.append(absolute_repo_path + '/' + ref_path_in_repo)
+        paths.append(str(Path(PurePosixPath(absolute_repo_path).joinpath(ref_path_in_repo.lstrip('/')))))
 
     return paths
 
@@ -110,7 +107,9 @@ def dict_to_doc_cls(
     """
     # resolve document path[s]
     if doc_cls.header() in doc_dict:
-        doc = doc_cls(doc_dict[doc_cls.header()], ref_path_in_repo, parent, parent.already_loaded_docs, absolute_path=absolute_path)
+        new_abs_paths = [absolute_path] + parent.absolute_paths
+        doc = doc_cls(doc_dict[doc_cls.header()], ref_path_in_repo,
+                      parent, parent.already_loaded_docs, absolute_paths=new_abs_paths)
     else:
         raise InvalidHeaderError("Subdocument of type " + doc_cls.__name__ + " (path: " + ref_path_in_repo + ") has invalid header.")
     return doc
@@ -126,8 +125,13 @@ def load_referenced_document(document: 'YamlConfigDocument', lookup_paths: List[
     docs = []
     ref_path_in_repo = path_in_repo(document.path, document[REF])
     doc_cls = document.__class__
+    if ref_path_in_repo.startswith('./') or ref_path_in_repo.startswith('../'):
+        # Invalid path
+        return []
     for absolute_path in absolute_paths(ref_path_in_repo, lookup_paths):
         for doc_dict in load_dicts(absolute_path):
+            if not isinstance(doc_dict, dict):
+                raise InvalidDocumentError("The document at %s is invalid" % absolute_path)
             doc = dict_to_doc_cls(doc_dict, doc_cls, absolute_path, ref_path_in_repo, document)
             docs.append(doc)
     return docs

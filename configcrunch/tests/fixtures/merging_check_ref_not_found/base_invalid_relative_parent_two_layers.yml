@@ -1,0 +1,2 @@
+base:
+  $ref: parent_check/merge

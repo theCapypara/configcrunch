@@ -13,6 +13,13 @@ class MergingRelativeRefInRepo(ConfigcrunchTestCase):
             ['repo1']
         )
 
+    def test_parent_repo(self):
+        self.assertDocEqualMerging(
+            'expected_one_repo.yml',
+            'base_parent_repo.yml',
+            ['repo_parent_directory']
+        )
+
     def test_two_repos(self):
         self.assertDocEqualMerging(
             'expected_two_repo.yml',

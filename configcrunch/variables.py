@@ -68,8 +68,8 @@ def __process_variables_current_doc(traverse: DocumentTraverser, input_node, doc
         except Exception:
             raise VariableProcessingError("Error processing a variable for document. "
                                           "Original value was %s, document class is %s. "
-                                          "Document path: %s (None means root document)."
-                                          % (input_node, document.__class__.__name__, document.path))
+                                          "Document path: %s."
+                                          % (input_node, document.__class__.__name__, document.absolute_paths[0]))
         if new_value != input_node:
             traverse.something_changed = True
         return new_value

@@ -8,7 +8,7 @@ from typing import List, Type, Union
 from configcrunch import REF
 from configcrunch.interface import IYamlConfigDocument
 from configcrunch.merger import resolve_and_merge, recursive_docs_to_dicts
-from configcrunch.errors import InvalidHeaderError, CircularDependencyError
+from configcrunch.errors import InvalidHeaderError, CircularDependencyError, InvalidDocumentError
 from configcrunch.variables import process_variables, process_variables_for
 
 DUMP_FOR_REPR = False
@@ -31,31 +31,27 @@ class YamlConfigDocument(IYamlConfigDocument, ABC):
             path: str= None,
             parent: 'YamlConfigDocument'= None,
             already_loaded_docs: List[str]= None,
-            dont_call_init_data= False,
-            absolute_path=None
+            absolute_paths: List[str]=[]
     ):
         """
         Constructs a YamlConfigDocument
-        :type absolute_path: absolute path on disk to this YCD
+        :type absolute_paths: absolute paths on disk to this YCD.
+                              This is a list, ordered by order of merge. First entry is the last merged file
+                              (the file with the first $ref in it).
         :param document: The document as a dict, without the header.
         :param path: Path of the document absolute to the configured repositories.
                      If this is not from a repo, leave at None.
         :type parent: Parent document
         :type already_loaded_docs: List of paths to already loaded documents (internal use)
-        :type dont_call_init_data: bool Skip calling _initialize_data_before_merge, for use in tests
         """
         self.doc = document
         self.path = path
         self.bound_helpers = []
         self.parent_doc = parent
-        # Absolute path to this YCD. Warning: This is also merged. Value points to top document after merge
-        self.absolute_path = absolute_path
+        self.absolute_paths = absolute_paths
 
         self.__infinite_recursion_check(already_loaded_docs)
         self.__collect_bound_variable_helpers()
-
-        if not dont_call_init_data:
-            self._initialize_data_before_merge()
 
     @classmethod
     def from_yaml(cls, path_to_yaml: str) -> 'YamlConfigDocument':
@@ -69,10 +65,12 @@ class YamlConfigDocument(IYamlConfigDocument, ABC):
         with open(path_to_yaml, 'r') as stream:
             entire_document = yaml.load(stream)
         # The document must start with a header matching it's class
+        if not isinstance(entire_document, dict):
+            raise InvalidDocumentError("The document at %s is invalid" % path_to_yaml)
         if cls.header() not in entire_document:
             raise InvalidHeaderError("The document does not have a valid header. Expected was: " + cls.header())
         body = entire_document[cls.header()]
-        return cls(body, absolute_path=path_to_yaml)
+        return cls(body, absolute_paths=[path_to_yaml])
 
     @classmethod
     @abstractmethod
@@ -88,15 +86,6 @@ class YamlConfigDocument(IYamlConfigDocument, ABC):
     def validate(self) -> bool:
         """ Validates the document against the Schema. """
         return self.schema().validate(self.doc)
-
-    def _initialize_data_before_merge(self):
-        """
-        May be used to initialize the document by adding / changing data. Called after constructor.
-        Use this for internal values that need to be merged like other values. DO NOT use this to
-        set default values, as this will result in unexpected values after the merging process.
-        Use _initialize_data_after_merge for these values.
-        """
-        pass
 
     def _initialize_data_after_merge(self):
         """ May be used to initialize the document by adding / changing data.

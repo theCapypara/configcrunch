@@ -1,7 +1,5 @@
 from schema import SchemaError
 
-from configcrunch import ReferencedDocumentNotFound
-from configcrunch.tests.fixtures.documents import Base
 from configcrunch.tests.acceptance.testcases import ConfigcrunchTestCase
 
 

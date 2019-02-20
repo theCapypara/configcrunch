@@ -70,6 +70,7 @@ def merge_documents(target: 'YamlConfigDocument', source: 'YamlConfigDocument') 
     newdoc = _merge_documents__recursion(source.doc, target.doc)
     target.doc = newdoc
     target.already_loaded_docs += source.already_loaded_docs
+    target.absolute_paths += source.absolute_paths
 
 
 def resolve_and_merge(doc: 'YamlConfigDocument', lookup_paths: List[str]) -> None:
@@ -90,7 +91,11 @@ def resolve_and_merge(doc: 'YamlConfigDocument', lookup_paths: List[str]) -> Non
                 merge_documents(referenced_doc, prev_referenced_doc)
             prev_referenced_doc = referenced_doc
         if prev_referenced_doc is None:
-            raise ReferencedDocumentNotFound("Referenced document " + doc[REF] + " not found")
+            if doc.absolute_paths:
+                raise ReferencedDocumentNotFound("Referenced document %s not found. Requested by a document at %s"
+                                                 % (doc[REF], doc.absolute_paths[0]))
+            else:
+                raise ReferencedDocumentNotFound("Referenced document %s not found." % doc[REF])
         # Resolve entire referenced docs
         resolve_and_merge(prev_referenced_doc, lookup_paths)
         # Merge content of current doc into referenced doc (and execute $remove's on the way)
@@ -117,7 +122,8 @@ def load_subdocument(
     """
     doc_obj = doc
     if not isinstance(doc, doc_clss):
-        doc_obj = doc_clss(doc, source_doc.path, source_doc, source_doc.already_loaded_docs, absolute_path=source_doc.absolute_path)
+        doc_obj = doc_clss(doc, source_doc.path, source_doc,
+                           source_doc.already_loaded_docs, absolute_paths=source_doc.absolute_paths)
 
     return doc_obj.resolve_and_merge_references(lookup_paths)
 

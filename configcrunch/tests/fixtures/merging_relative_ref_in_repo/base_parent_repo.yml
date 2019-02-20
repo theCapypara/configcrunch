@@ -1,0 +1,5 @@
+base:
+  $ref: /folder/1.0
+  more:
+    base: base
+    version: base

@@ -17,14 +17,13 @@ class YamlConfigDocumentStub(YamlConfigDocument):
                  path: str = None,
                  parent: 'YamlConfigDocument' = None,
                  already_loaded_docs: List[str] = None,
-                 dont_call_init_data=False,
                  set_parent_to_self=False,
-                 absolute_path=None
+                 absolute_paths=None
     ):
         """The option set_parent_to_self can be used to set the parent_doc to self for easier testing."""
         self.doc = document
         self.path = path
-        self.absolute_path = absolute_path
+        self.absolute_path = absolute_paths
         self.parent_doc = parent
         if set_parent_to_self:
             self.parent_doc = self
