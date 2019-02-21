@@ -31,7 +31,7 @@ class YamlConfigDocument(IYamlConfigDocument, ABC):
             path: str= None,
             parent: 'YamlConfigDocument'= None,
             already_loaded_docs: List[str]= None,
-            absolute_paths: List[str]=[]
+            absolute_paths=None
     ):
         """
         Constructs a YamlConfigDocument
@@ -44,6 +44,8 @@ class YamlConfigDocument(IYamlConfigDocument, ABC):
         :type parent: Parent document
         :type already_loaded_docs: List of paths to already loaded documents (internal use)
         """
+        if absolute_paths is None:
+            absolute_paths = []
         self.doc = document
         self.path = path
         self.bound_helpers = []
