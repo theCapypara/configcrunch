@@ -15,6 +15,14 @@ DUMP_FOR_REPR = False
 
 
 def variable_helper(func):
+    orig_doc = ""
+    if hasattr(func, "__doc__") and func.__doc__ is not None:
+        orig_doc = func.__doc__
+    func.__doc__ = """.. admonition:: Variable Helper
+                  
+                  Can be used inside configuration files.
+
+""" + orig_doc
     func.__is_variable_helper = True
     return func
 
@@ -35,14 +43,14 @@ class YamlConfigDocument(IYamlConfigDocument, ABC):
     ):
         """
         Constructs a YamlConfigDocument
-        :type absolute_paths: absolute paths on disk to this YCD.
-                              This is a list, ordered by order of merge. First entry is the last merged file
-                              (the file with the first $ref in it).
+        :param absolute_paths: absolute paths on disk to this YCD.
+                               This is a list, ordered by order of merge. First entry is the last merged file
+                               (the file with the first $ref in it).
         :param document: The document as a dict, without the header.
         :param path: Path of the document absolute to the configured repositories.
                      If this is not from a repo, leave at None.
-        :type parent: Parent document
-        :type already_loaded_docs: List of paths to already loaded documents (internal use)
+        :param parent: Parent document
+        :param already_loaded_docs: List of paths to already loaded documents (internal use)
         """
         if absolute_paths is None:
             absolute_paths = []
@@ -58,9 +66,11 @@ class YamlConfigDocument(IYamlConfigDocument, ABC):
     @classmethod
     def from_yaml(cls, path_to_yaml: str) -> 'YamlConfigDocument':
         """
-        Constructs a YamlConfigDocument from a YAML-file. Expects the content to be
-        a dictionary with one key defined in the header method and it's value is
-        the body of the document, validated by the schema method.
+        Constructs a YamlConfigDocument from a YAML-file.
+
+        Expects the content to be a dictionary with one key (defined in the
+        header method) and it's value is the body of the document,
+        validated by the schema method.
         :param path_to_yaml:
         :return:
         """
@@ -77,12 +87,12 @@ class YamlConfigDocument(IYamlConfigDocument, ABC):
     @classmethod
     @abstractmethod
     def header(cls) -> str:
-        """ Returns the header that YAML-documents should contain. """
+        """ Header that YAML-documents must contain. """
         pass
 
     @abstractmethod
     def schema(self) -> Schema:
-        """ Returns the schema that the document should be validated against """
+        """ Schema that the document should be validated against. """
         pass
 
     def validate(self) -> bool:
@@ -90,7 +100,9 @@ class YamlConfigDocument(IYamlConfigDocument, ABC):
         return self.schema().validate(self.doc)
 
     def _initialize_data_after_merge(self):
-        """ May be used to initialize the document by adding / changing data.
+        """
+        May be used to initialize the document by adding / changing data.
+
         Called after resolve_and_merge_references.
         Use this for setting default values.
         """
@@ -98,7 +110,9 @@ class YamlConfigDocument(IYamlConfigDocument, ABC):
 
     def _initialize_data_after_variables(self):
         """
-        May be used to initialize the document by adding / changing data. Called after process_vars.
+        May be used to initialize the document by adding / changing data.
+
+        Called after process_vars.
         Use this for setting internal values based on processed values in the document.
         """
         pass
@@ -107,9 +121,11 @@ class YamlConfigDocument(IYamlConfigDocument, ABC):
         """
         Resolve the $ref entry at the beginning of the document body and merge with referenced documents
         (changes this document in place).
+
         May also be extended by subclasses to include sub-document resolving.
+
         :param lookup_paths: Paths to the repositories, where referenced should be looked up.
-        :return:
+        :returns: self
         """
         resolve_and_merge(self, lookup_paths)
         self._initialize_data_after_merge()
@@ -134,7 +150,7 @@ class YamlConfigDocument(IYamlConfigDocument, ABC):
 
     @variable_helper
     def parent(self) -> 'YamlConfigDocument':
-        """ A helper function that can be used by variable-placeholders to the get the parent document (if any) """
+        """ A helper function that can be used by variable-placeholders to the get the parent document (if any). """
         if self.parent_doc:
             return self.parent_doc
         else:
