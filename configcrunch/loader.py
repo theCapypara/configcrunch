@@ -25,18 +25,12 @@ def load_repos(lookup_paths: List[str]) -> List[str]:
     """
     repo_paths = []
     for path in lookup_paths:
-        if path.startswith('./') or path.startswith('.\\'):
-            # relative path to project folder
-            repo_paths.append(os.path.join(os.getcwd(), path[2:]))
-            # TODO: use project folder instead of CWD
-            # TODO: support later?
-        if path.startswith('/') or path.startswith('\\'):
+        if Path(path).is_absolute():
             # Absolute Paths
-            # TODO: Windows conversion
             repo_paths.append(path)
         else:
-            # TODO try git
-            # TODO Should not be part of cc
+            # relative path to project folder
+            repo_paths.append(os.path.join(os.getcwd(), path))
             pass
 
     return repo_paths
