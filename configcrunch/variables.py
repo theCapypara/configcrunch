@@ -39,9 +39,10 @@ class DocumentTraverser:
 
 
 def apply_variable_resolution(input_str: str, document: 'YamlConfigDocument'):
-    # TODO doc
+    """Process variables for a document in a single string"""
     template = jinja2env.from_string(input_str)
 
+    # With inspiration from https://stackoverflow.com/a/47291097
     for helper in document.bound_helpers:
         template.globals[helper.__name__] = helper
 
@@ -79,8 +80,10 @@ def __process_variables_current_doc(traverse: DocumentTraverser, input_node, doc
 
 
 def process_variables(ycd: 'YamlConfigDocument'):
-    # TODO: Currently the algorithm isn't very smart. It just runs over the
-    # TODO: document, replacing variables, until no replacements have been done.
+    """Process all variables in a document"""
+    # TODO: The algorithm isn't very smart. It just runs over the
+    #       document, replacing variables, until no replacements have been done.
+    #       This should be improved in future versions
     traverse = DocumentTraverser()
     # First process all sub documents variables
     traverse.run_callback(__process_variables_for_subdoc, ycd.doc)
@@ -93,10 +96,5 @@ def process_variables(ycd: 'YamlConfigDocument'):
 
 
 def process_variables_for(ycd: 'YamlConfigDocument', target: str):
+    """Replace variables in target as if it were a string in the document ycd"""
     return apply_variable_resolution(target, ycd)
-
-# http://jinja.pocoo.org/docs/2.10/api/
-# http://jinja.pocoo.org/docs/2.10/api/#jinja2.runtime.Context
-# http://jinja.pocoo.org/docs/2.10/sandbox/#jinja2.sandbox.SandboxedEnvironment
-# http://jinja.pocoo.org/docs/2.10/extensions/
-# https://stackoverflow.com/a/47291097

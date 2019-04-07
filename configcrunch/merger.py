@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING
 
 from configcrunch.interface import IYamlConfigDocument
 from configcrunch.loader import load_referenced_document
-from configcrunch.errors import ReferencedDocumentNotFound
+from configcrunch.errors import ReferencedDocumentNotFound, InvalidRemoveError
 
 if TYPE_CHECKING:
     from configcrunch.abstract import YamlConfigDocument
@@ -54,7 +54,7 @@ def _merge_documents__recursion(target_node: any, source_node: any) -> any:
 
     # IS $remove IN SOURCE AND ... IN TARGET
     if source_node == REMOVE:
-        raise Exception("Tried to remove a node at an unexpected position")  # todo exception
+        raise InvalidRemoveError("Tried to remove a node at an unexpected position")
 
     # IS SCALAR IN BOTH (or just in SOURCE)
     else:

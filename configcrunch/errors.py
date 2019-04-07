@@ -20,3 +20,7 @@ class InvalidDocumentError(ConfigcrunchError):
 
 class InvalidHeaderError(InvalidDocumentError):
     pass
+
+
+class InvalidRemoveError(InvalidDocumentError):
+    pass
