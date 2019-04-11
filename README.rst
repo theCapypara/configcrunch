@@ -29,6 +29,111 @@ Used by:
 By default Configcrunch uses `schema <https://pypi.org/project/schema/>`_ to validate schemas.
 But you can also use your own validation logic!
 
+Example
+-------
+
+This is an example that uses most of the features described above, using two document types.
+
+.. code-block:: yaml
+
+    # doc1.yml - Type: one
+    one:
+        name: Document
+        number: 1
+        sub:
+            # Sub-document of type "two"
+            $ref: /doc2
+            two_field: "{{ parent().method() }}"
+
+
+.. code-block:: yaml
+
+    # <lookup path>/doc2.yml - Type: two
+    two:
+        name: Doc 2
+        number: 2
+        two_field: This is overridden
+
+
+.. code-block:: python
+
+    # classes.py
+    from schema import Schema, Optional
+
+    from configcrunch import YamlConfigDocument, DocReference, load_subdocument
+    from configcrunch.abstract import variable_helper
+
+
+    class One(YamlConfigDocument):
+        @classmethod
+        def header(cls) -> str:
+            return "one"
+
+        def schema(self) -> Schema:
+            return Schema(
+                {
+                    Optional('$ref'): str,  # reference to other One documents
+                    'name': str,
+                    'number': int,
+                    Optional('sub'): DocReference(Two)
+                }
+            )
+
+        def resolve_and_merge_references(self, lookup_paths):
+            super().resolve_and_merge_references(lookup_paths)
+            if "sub" in self:
+                self["sub"] = load_subdocument(self["sub"], self, Two, lookup_paths)
+            return self
+
+        @variable_helper
+        def method(self):
+            return "I will return something"
+
+
+    class Two(YamlConfigDocument):
+        @classmethod
+        def header(cls) -> str:
+            return "two"
+
+        def schema(self) -> Schema:
+            return Schema(
+                {
+                    Optional('$ref'): str,  # reference to other Two documents
+                    'name': str,
+                    'number': int,
+                    'two_field': str
+                }
+            )
+
+
+The document "one.yml" can then be read via Python:
+
+.. code-block:: python
+
+    import yaml
+    from classes import One
+
+    doc = One.from_yaml('./doc1.yml')
+    doc.resolve_and_merge_references(['./repo'])
+    doc.process_vars()
+
+    print(yaml.dump(doc.to_dict(), default_flow_style=False))
+    # one:
+    #   name: Document
+    #   number: 1
+    #   sub:
+    #     name: Doc 2
+    #     number: 2
+    #     two_field: I will return something
+
+
+Tests
+-----
+
+Inside the ``configcrunch.tests`` package are acceptance tests. Unit tests are WIP.
+
+To run the tests, see ``run_tests.sh``.
+
 Documentation
 -------------
 
