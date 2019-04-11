@@ -18,8 +18,7 @@ if TYPE_CHECKING:
 
 def load_repos(lookup_paths: List[str]) -> List[str]:
     """
-    Load the full absolute paths to the repositories stored on disc.
-    If the paths are Git-repositories, they may be cloned first.
+    Load the full absolute paths to the repositories (lookup paths) stored on disk.
     :param lookup_paths:
     :return:
     """
