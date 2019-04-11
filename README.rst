@@ -60,8 +60,7 @@ This is an example that uses most of the features described above, using two doc
     # classes.py
     from schema import Schema, Optional
 
-    from configcrunch import YamlConfigDocument, DocReference, load_subdocument
-    from configcrunch.abstract import variable_helper
+    from configcrunch import YamlConfigDocument, DocReference, load_subdocument, variable_helper
 
 
     class One(YamlConfigDocument):
