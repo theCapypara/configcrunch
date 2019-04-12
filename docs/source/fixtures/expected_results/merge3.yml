@@ -1,0 +1,9 @@
+parent:
+  name: overwritten
+  direct:
+    this: foo
+  map:
+    key:
+      this: bar
+    key2:
+      this: bar2

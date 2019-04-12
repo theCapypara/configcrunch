@@ -1,0 +1,7 @@
+parent:
+  name: hello
+  direct:
+    this: hello world
+  map:
+    key:
+      this: world

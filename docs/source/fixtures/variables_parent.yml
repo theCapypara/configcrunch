@@ -1,0 +1,7 @@
+parent:
+  name: hello
+  direct:
+    this: '{{ parent().name }} {{ parent().map.key.this }}'
+  map:
+    key:
+      this: world

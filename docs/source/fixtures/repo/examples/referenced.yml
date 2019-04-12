@@ -1,0 +1,4 @@
+# fixtures/repo/examples/referenced.yml
+example:
+  this: can be changed
+  int: 1

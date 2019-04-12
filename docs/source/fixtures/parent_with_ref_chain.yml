@@ -1,0 +1,3 @@
+parent:
+  $ref: /referenced-document-with-reference
+  name: overwritten

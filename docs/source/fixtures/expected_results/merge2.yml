@@ -1,0 +1,8 @@
+parent:
+  name: overwritten
+  direct:
+    this: was changed
+    int: 1
+  map:
+    key:
+      this: bar

@@ -1,0 +1,9 @@
+# fixtures/parent.yml
+parent:
+  name: parent
+  direct:
+    this: is an example-type document
+  map:
+    one:
+      this: is also an example-type document
+      int: 3

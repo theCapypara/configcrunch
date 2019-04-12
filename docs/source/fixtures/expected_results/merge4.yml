@@ -1,0 +1,8 @@
+parent:
+  name: overwritten
+  direct:
+    this: foo
+    int: 1234
+  map:
+    key_from_parent_with_ref:
+      this: is from parent_with_ref

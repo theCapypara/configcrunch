@@ -43,6 +43,7 @@ class YamlConfigDocument(IYamlConfigDocument, ABC):
     ):
         """
         Constructs a YamlConfigDocument
+
         :param absolute_paths: absolute paths on disk to this YCD.
                                This is a list, ordered by order of merge. First entry is the last merged file
                                (the file with the first $ref in it).
@@ -71,6 +72,7 @@ class YamlConfigDocument(IYamlConfigDocument, ABC):
         Expects the content to be a dictionary with one key (defined in the
         header method) and it's value is the body of the document,
         validated by the schema method.
+
         :param path_to_yaml:
         :return:
         """
@@ -97,7 +99,8 @@ class YamlConfigDocument(IYamlConfigDocument, ABC):
 
     def validate(self) -> bool:
         """ Validates the document against the Schema. """
-        return self.schema().validate(self.doc)
+        self.schema().validate(self.doc)
+        return True
 
     def _initialize_data_after_merge(self):
         """

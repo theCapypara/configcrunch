@@ -109,23 +109,19 @@ This is an example that uses most of the features described above, using two doc
 
 The document "one.yml" can then be read via Python:
 
-.. code-block:: python
-
-    import yaml
-    from classes import One
-
-    doc = One.from_yaml('./doc1.yml')
-    doc.resolve_and_merge_references(['./repo'])
-    doc.process_vars()
-
-    print(yaml.dump(doc.to_dict(), default_flow_style=False))
-    # one:
-    #   name: Document
-    #   number: 1
-    #   sub:
-    #     name: Doc 2
-    #     number: 2
-    #     two_field: I will return something
+    >>> import yaml
+    >>> from classes import One
+    >>> doc = One.from_yaml('./doc1.yml')
+    >>> doc.resolve_and_merge_references(['<lookup path>'])
+    >>> doc.process_vars()
+    >>> print(yaml.dump(doc.to_dict(), default_flow_style=False))
+    one:
+      name: Document
+      number: 1
+      sub:
+        name: Doc 2
+        number: 2
+        two_field: I will return something
 
 
 Tests

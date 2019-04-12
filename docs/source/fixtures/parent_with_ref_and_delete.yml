@@ -1,0 +1,10 @@
+# fixtures/parent_with_ref.yml
+parent:
+  $ref: /referenced-document
+  name: overwritten
+  direct:
+    int: 1234
+  map:
+    key: $remove
+    key_from_parent_with_ref:
+      this: is from parent_with_ref

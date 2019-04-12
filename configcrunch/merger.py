@@ -23,6 +23,7 @@ if TYPE_CHECKING:
 def _merge_documents__recursion(target_node: any, source_node: any) -> any:
     """
     Recursive merging step of merge_documents
+
     :param target_node: Node to MERGE INTO
     :param source_node: Node to MERGE FROM
     :return: Merge result
@@ -64,6 +65,7 @@ def _merge_documents__recursion(target_node: any, source_node: any) -> any:
 def merge_documents(target: 'YamlConfigDocument', source: 'YamlConfigDocument') -> None:
     """
     Merges two YamlConfigDocuments.
+
     :param target: Target document - this document will be changed, it will contain the result of merging target into source.
     :param source: Source document to base merge on
     """
@@ -78,6 +80,7 @@ def resolve_and_merge(doc: 'YamlConfigDocument', lookup_paths: List[str]) -> Non
     Resolve the $ref entry at the beginning of the document body and merge with referenced documents
     (changes this document in place).
     May also be extended by subclasses to include sub-document resolving.
+
     :param doc: Document to work on
     :param lookup_paths: Paths to the repositories, where referenced should be looked up.
     :return:
@@ -114,6 +117,7 @@ def load_subdocument(
     Load a subdocument of a specific type. This will convert the dict at this position
     into a YamlConfigDocument with the matching type and perform resolve_and_merge_references
     on it.
+
     :param doc: Dictionary with data to convert. Can also already be a document of the target type.
     :param source_doc: Parent document
     :param doc_clss: Class that is expected from the subdocument (target class)

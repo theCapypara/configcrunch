@@ -1,0 +1,6 @@
+parent:
+  $ref: /referenced-document
+  name: overwritten
+  direct:
+    $ref: /examples/referenced
+    this: was changed

@@ -1,0 +1,6 @@
+# fixtures/repo/referenced-document.yml
+parent:
+  $ref: ./referenced-document
+  map:
+    key2:
+      this: bar2

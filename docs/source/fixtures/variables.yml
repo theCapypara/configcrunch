@@ -1,0 +1,6 @@
+example:
+  this: "{{ int }} is a number"
+  int: 12
+  map:
+    key: "{{ map.key2 }} <- all references are made from the root of the document"
+    key2: value 2

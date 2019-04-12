@@ -1,0 +1,9 @@
+# fixtures/simple_example.yml
+example:
+  this: document can contain anything
+  int: 12
+  map:
+    key: value
+  list:
+    - 1
+    - two
