@@ -218,6 +218,7 @@ class DocReference(object):
         Validates. If the subdocument still contains $ref, it is not validated further,
         please call resolve_and_merge_references. Otherwise the sub-document is expected to match
         according to it's schema.
+
         :param data:
         :return:
         """
