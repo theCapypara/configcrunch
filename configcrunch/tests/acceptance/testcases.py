@@ -32,7 +32,7 @@ class ConfigcrunchTestCase(unittest.TestCase, ABC):
     @classmethod
     def fix_get_yml(cls, path):
         with open(cls.fix_get_path(path), 'r') as stream:
-            return yaml.load(stream)
+            return yaml.safe_load(stream)
 
     def load_base(self, path, lookup_paths):
         base = Base.from_yaml(self.fix_get_path(path))

@@ -8,7 +8,7 @@ setup(
     long_description='TODO - Project will be available starting May',  # TODO
     install_requires=[
         'schema >= 0.6',
-        'pyyaml >= 3.13',
+        'pyyaml >= 5.1',
         'jinja2 >= 2.10'
     ],
     # TODO

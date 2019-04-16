@@ -77,12 +77,12 @@ def load_dicts(path: str) -> List[dict]:
     yml_filename = path + ".yml"
     if os.path.isfile(yml_filename):
         with open(yml_filename, 'r') as stream:
-            doc_dicts.append(yaml.load(stream))
+            doc_dicts.append(yaml.safe_load(stream))
 
     yaml_filename = path + ".yaml"
     if os.path.isfile(yaml_filename):
         with open(yaml_filename, 'r') as stream:
-            doc_dicts.append(yaml.load(stream))
+            doc_dicts.append(yaml.safe_load(stream))
 
     return doc_dicts
 

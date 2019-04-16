@@ -77,7 +77,7 @@ class YamlConfigDocument(IYamlConfigDocument, ABC):
         :return:
         """
         with open(path_to_yaml, 'r') as stream:
-            entire_document = yaml.load(stream)
+            entire_document = yaml.safe_load(stream)
         # The document must start with a header matching it's class
         if not isinstance(entire_document, dict):
             raise InvalidDocumentError("The document at %s is invalid" % path_to_yaml)
