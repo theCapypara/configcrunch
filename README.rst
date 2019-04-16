@@ -1,13 +1,15 @@
 Configcrunch
 ============
 
-.. image:: http://jenkins.riptide.parakoopa.de:8080/buildStatus/icon?job=configcrunch%2Fmaster
-:target: http://jenkins.riptide.parakoopa.de:8080/blue/organizations/jenkins/configcrunch/activity
-:alt: Build Status
+|build| |docs|
 
-.. image:: https://readthedocs.org/projects/configcrunch/badge/?version=latest
-:target: https://configcrunch.readthedocs.io/en/latest/?badge=latest
-:alt: Documentation Status
+.. |build| image:: http://jenkins.riptide.parakoopa.de:8080/buildStatus/icon?job=configcrunch%2Fmaster
+    :target: http://jenkins.riptide.parakoopa.de:8080/blue/organizations/jenkins/configcrunch/activity
+    :alt: Build Status
+
+.. |docs| image:: https://readthedocs.org/projects/configcrunch/badge/?version=latest
+    :target: https://configcrunch.readthedocs.io/en/latest/?badge=latest
+    :alt: Documentation Status
 
 Configcrunch is a Python library for reading YAML-based configuration files that aims to be simple
 while also providing some very powerful features.
