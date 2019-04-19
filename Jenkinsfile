@@ -6,6 +6,16 @@ pipeline {
 
     stages {
 
+        stage("Prepare Venv") {
+            agent {
+                docker { image 'python:3.7' }
+            }
+            steps {
+                sh "rm -rf .venv || true"
+                sh "virtualenv .venv"
+            }
+        }
+
         stage("Build Images") {
             // Builds images that are required for tests
             steps {
@@ -33,14 +43,14 @@ pipeline {
             }
         }
 
-        stage('Build and Deploy to PyPI') {
+        stage('Build') {
             agent {
                 docker { image 'python:3.7' }
             }
             steps {
                 sh "rm -rf dist build || true"
-                sh "pip install -r requirements.txt"
-                sh "python setup.py bdist_wheel"
+                sh "source .venv/bin/activate && pip install -r requirements.txt"
+                sh "source .venv/bin/activate && python setup.py bdist_wheel"
             }
             post {
                 always {
@@ -60,7 +70,7 @@ pipeline {
                 docker { image 'python:3.7' }
             }
             steps {
-                sh "twine -u $TWINE_USR -p $TWINE_PSW upload dist/*"
+                sh "source .venv/bin/activate && twine -u $TWINE_USR -p $TWINE_PSW upload dist/*"
             }
         }
 
