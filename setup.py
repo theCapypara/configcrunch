@@ -18,7 +18,7 @@ setup(
     install_requires=[
         'schema >= 0.6',
         'pyyaml >= 5.1',
-        'jinja2 >= 2.10'
+        'jinja2 >= 2.10.1'
     ],
     classifiers=[
         'Development Status :: 3 - Alpha',
