@@ -39,8 +39,6 @@ pipeline {
             }
             environment {
                 TWINE    = credentials('parakoopa-twine-username-password')
-                TWINE_USERNAME = env.TWINE_USR
-                TWINE_PASSWORD = env.TWINE_PSW
             }
             agent {
                 docker { image 'python:3.7' }
@@ -48,7 +46,7 @@ pipeline {
             steps {
                 sh "pip install -r requirements.txt"
                 sh "python setup.py bdist_wheel"
-                sh "twine upload dist/*"
+                sh "twine -u $TWINE_USR -p $TWINE_PSW upload dist/*"
             }
             post {
                 always {
