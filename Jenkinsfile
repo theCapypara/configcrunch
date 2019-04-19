@@ -41,14 +41,14 @@ pipeline {
                 docker { image 'python:3.7' }
             }
             steps {
-                sh pip install -r requirements.txt
-                sh python setup.py bdist_wheel
-                sh twine upload dist/*
+                sh "pip install -r requirements.txt"
+                sh "python setup.py bdist_wheel"
+                sh "twine upload dist/*"
             }
             post {
                 always {
-                    archiveArtifacts allowEmptyArchive: true, artifacts: 'dist/*whl', fingerprint: true)
-                    sh rm -rf dist build || true
+                    archiveArtifacts allowEmptyArchive: true, artifacts: 'dist/*whl', fingerprint: true
+                    sh "rm -rf dist build || true"
                 }
             }
         }
