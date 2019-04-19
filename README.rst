@@ -3,8 +3,8 @@ Configcrunch
 
 |build| |docs|
 
-.. |build| image:: http://jenkins.riptide.parakoopa.de:8080/buildStatus/icon?job=configcrunch%2Fmaster
-    :target: http://jenkins.riptide.parakoopa.de:8080/blue/organizations/jenkins/configcrunch/activity
+.. |build| image:: https://jenkins.riptide.parakoopa.de/buildStatus/icon?job=configcrunch%2Fmaster
+    :target: https://jenkins.riptide.parakoopa.de/blue/organizations/jenkins/configcrunch/activity
     :alt: Build Status
 
 .. |docs| image:: https://readthedocs.org/projects/configcrunch/badge/?version=latest
