@@ -14,7 +14,7 @@ setup(
     description='Configuration parser based on YAML-Files with support for variables, overlaying and hierarchies',
     long_description=long_description,
     long_description_content_type='text/x-rst',
-    url='https://configcrunch.readthedocs.io/en/latest/',
+    url='https://github.com/Parakoopa/configcrunch/',
     install_requires=[
         'schema >= 0.6',
         'pyyaml >= 5.1',
