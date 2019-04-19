@@ -37,6 +37,11 @@ pipeline {
             when {
                 branch "release"
             }
+            environment {
+                TWINE    = credentials('parakoopa-twine-username-password')
+                TWINE_USERNAME = env.TWINE_USR
+                TWINE_PASSWORD = env.TWINE_PSW
+            }
             agent {
                 docker { image 'python:3.7' }
             }
