@@ -33,6 +33,26 @@ pipeline {
             }
         }
 
+        stage('Build and Deploy to PyPI') {
+            when {
+                branch "release"
+            }
+            agent {
+                docker { image 'python:3.7' }
+            }
+            steps {
+                sh pip install -r requirements.txt
+                sh python setup.py bdist_wheel
+                sh twine upload dist/*
+            }
+            post {
+                always {
+                    archiveArtifacts allowEmptyArchive: true, artifacts: 'dist/*whl', fingerprint: true)
+                    sh rm -rf dist build || true
+                }
+            }
+        }
+
     }
 
 }
