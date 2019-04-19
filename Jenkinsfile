@@ -34,6 +34,22 @@ pipeline {
         }
 
         stage('Build and Deploy to PyPI') {
+            agent {
+                docker { image 'python:3.7' }
+            }
+            steps {
+                sh "rm -rf dist build || true"
+                sh "pip install -r requirements.txt"
+                sh "python setup.py bdist_wheel"
+            }
+            post {
+                always {
+                    archiveArtifacts allowEmptyArchive: true, artifacts: 'dist/*whl', fingerprint: true
+                }
+            }
+        }
+
+        stage('Deploy to PyPI') {
             when {
                 branch "release"
             }
@@ -44,15 +60,7 @@ pipeline {
                 docker { image 'python:3.7' }
             }
             steps {
-                sh "pip install -r requirements.txt"
-                sh "python setup.py bdist_wheel"
                 sh "twine -u $TWINE_USR -p $TWINE_PSW upload dist/*"
-            }
-            post {
-                always {
-                    archiveArtifacts allowEmptyArchive: true, artifacts: 'dist/*whl', fingerprint: true
-                    sh "rm -rf dist build || true"
-                }
             }
         }
 
