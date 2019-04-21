@@ -153,7 +153,18 @@ class YamlConfigDocument(IYamlConfigDocument, ABC):
 
     @variable_helper
     def parent(self) -> 'YamlConfigDocument':
-        """ A helper function that can be used by variable-placeholders to the get the parent document (if any). """
+        """
+        A helper function that can be used by variable-placeholders to the get the parent document (if any is set).
+
+        Example usage::
+
+            something: '{{ parent().field }}'
+
+        Example result::
+
+            something: 'value of parent field'
+
+        """
         if self.parent_doc:
             return self.parent_doc
         else:
@@ -182,6 +193,14 @@ class YamlConfigDocument(IYamlConfigDocument, ABC):
 
     def __str__(self):
         return self.__class__.__name__ + "(" + str(self.doc) + ")"
+
+    def error_str(self) -> str:
+        """
+        Error string representation.
+        This short string representation is used in Schema errors and is meant to assist in finding
+        document errors. Set this to a small representation of the document, that the user can understand.
+        """
+        return "type " + self.__class__.__name__
 
     def __len__(self):
         return len(self.doc)
@@ -233,7 +252,7 @@ class DocReference(object):
             try:
                 data.validate()
             except SchemaError as e:
-                raise SchemaError("Error parsing subdocument of type " + self.referenced_doc_type.__name__, e.errors)
+                raise SchemaError("Error parsing subdocument " + data.error_str(), e.errors)
         else:
             raise SchemaError('Expected an instance of ' + self.referenced_doc_type.__name__ + ' while validating.', [])
 

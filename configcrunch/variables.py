@@ -68,9 +68,9 @@ def __process_variables_current_doc(traverse: DocumentTraverser, input_node, doc
             new_value = apply_variable_resolution(input_node, document)
         except Exception as ex:
             raise VariableProcessingError("Error processing a variable for document. "
-                                          "Original value was %s, document class is %s. "
+                                          "Original value was %s, document is %s. "
                                           "Document path: %s."
-                                          % (input_node, document.__class__.__name__, document.absolute_paths[0])
+                                          % (input_node, document.error_str(), document.absolute_paths[0])
                                           ) from ex
         if new_value != input_node:
             traverse.something_changed = True
