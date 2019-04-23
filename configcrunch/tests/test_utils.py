@@ -8,7 +8,7 @@ class YamlConfigDocumentStub(YamlConfigDocument):
     """
     Minimal version of an actual YamlConfigDocument for use in unit tests.
     Apart from the constructor setting the fields doc, path and parent, no other fields
-    are avaiable.
+    are available.
     Accessors are available for doc.
     All other methods that modify the state are not available.
     """

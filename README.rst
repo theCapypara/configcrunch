@@ -22,7 +22,7 @@ Features:
 
 - Read configuration files from YAML files.
 - Define various types of configuration files, that can be validated via a schema.
-- Types of configuration files are defined as seperate Python classes.
+- Types of configuration files are defined as separate Python classes.
 - Documents can be configured to contain sub-documents of any type.
 - Documents can contain `Jinja2 <http://jinja.pocoo.org/docs/2.10/>`_ based variables that can
   reference any other field inside the same or parent document.
