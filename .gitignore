@@ -108,3 +108,6 @@ venv.bak/
 # mypy
 .mypy_cache/
 test_reports/
+
+# Riptide
+_riptide/

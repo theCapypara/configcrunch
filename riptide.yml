@@ -1,0 +1,11 @@
+project:
+  name: configcrunchdocs
+  src: .
+  app:
+    $ref: /app/sphinx/latest
+    services:
+      sphinx:
+        environment:
+          REQUIREMENTS_FILE: "requirements_docs.txt"
+          SPHINX_SOURCE: docs/source
+          SPHINX_BUILD: docs/build
