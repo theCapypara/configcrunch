@@ -60,7 +60,10 @@ def absolute_paths(ref_path_in_repo: str, lookup_paths: List[str]) -> List[str]:
     """
     paths = []
     for absolute_repo_path in load_repos(lookup_paths):
-        paths.append(str(Path(PurePosixPath(absolute_repo_path).joinpath(ref_path_in_repo.lstrip('/')))))
+        # resolve is needed to get rid of xyz/../abc structures.
+        paths.append(str(Path(
+            PurePosixPath(absolute_repo_path).joinpath(ref_path_in_repo.lstrip('/'))
+        ).resolve()))
 
     return paths
 
