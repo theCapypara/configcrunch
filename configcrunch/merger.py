@@ -72,7 +72,12 @@ def merge_documents(target: 'YamlConfigDocument', source: 'YamlConfigDocument') 
     newdoc = _merge_documents__recursion(source.doc, target.doc)
     target.doc = newdoc
     target.already_loaded_docs += source.already_loaded_docs
-    target.absolute_paths += list(set(source.absolute_paths) - set(target.absolute_paths))
+
+    new_entries = []
+    for entry in source.absolute_paths:
+        if entry not in target.absolute_paths:
+            new_entries.append(entry)
+    target.absolute_paths += new_entries
 
 
 def resolve_and_merge(doc: 'YamlConfigDocument', lookup_paths: List[str]) -> None:
