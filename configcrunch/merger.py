@@ -8,7 +8,7 @@ Contains the logic to merge loaded documents.
 """
 from typing import Union, Type, List
 
-from configcrunch import REF, REMOVE
+from configcrunch import REF, REMOVE, REMOVE_FROM_LIST_PREFIX
 
 from typing import TYPE_CHECKING
 
@@ -46,6 +46,18 @@ def _merge_documents__recursion(target_node: any, source_node: any) -> any:
     elif isinstance(source_node, list) and isinstance(target_node, list):
         result = list(target_node)
         result.extend(x for x in source_node if x not in target_node)
+        # Collect all $remove::
+        removes = [
+            x.split(REMOVE_FROM_LIST_PREFIX, 1)[-1]
+            for x
+            in result
+            if isinstance(x, str) and x.startswith(REMOVE_FROM_LIST_PREFIX)
+        ]
+        # Remove all $remove:: entries in list and the entries to remove
+        result = list(filter(lambda x:
+                             not isinstance(x, str)
+                             or (not x.startswith(REMOVE_FROM_LIST_PREFIX) and x not in removes),
+                             result))
         return result
 
     # IS YCD IN SOURCE AND TARGET

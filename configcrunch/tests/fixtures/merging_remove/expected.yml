@@ -5,6 +5,10 @@ base:
           name: Invalid
           more:
             $remove: hello
+            list:
+              - entry1
+              - entry2
+              - entry4
         abc:
           name: abc
           base_ref:

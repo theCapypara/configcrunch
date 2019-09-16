@@ -1,6 +1,7 @@
 # Constants
 REF = "$ref"
 REMOVE = "$remove"
+REMOVE_FROM_LIST_PREFIX = REMOVE + "::"
 
 # Public classes and functions
 from .abstract import YamlConfigDocument, DocReference, variable_helper

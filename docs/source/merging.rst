@@ -203,11 +203,14 @@ Removing entries
 During merging, a document can remove something from a referenced document with the special
 ``$remove`` keyword.
 
+To remove string entries from lists, add an entry to the list which has the original value and prefix
+it with "$remove::". Only removing strings from lists is supported.
+
 Example document:
 
 .. literalinclude:: fixtures/parent_with_ref_and_delete.yml
    :language: yaml
-   :emphasize-lines: 8
+   :emphasize-lines: 8,10
 
 Merge result:
 

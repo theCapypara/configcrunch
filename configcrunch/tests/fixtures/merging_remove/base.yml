@@ -7,6 +7,9 @@ base:
       $ref: $remove
       more:
         $remove: hello
+        list:
+          - "$remove::entry3"
+          - "$remove::test-$remove::entry2"
     abc:
       name: abc
       base_ref:
