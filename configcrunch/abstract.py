@@ -1,4 +1,5 @@
 import inspect
+import warnings
 from abc import ABC, abstractmethod
 
 import yaml
@@ -7,7 +8,7 @@ from typing import List, Type, Union
 
 from configcrunch import REF
 from configcrunch.interface import IYamlConfigDocument
-from configcrunch.merger import resolve_and_merge, recursive_docs_to_dicts
+from configcrunch.merger import resolve_and_merge, recursive_docs_to_dicts, delete_remove_markers
 from configcrunch.errors import InvalidHeaderError, CircularDependencyError, InvalidDocumentError
 from configcrunch.variables import process_variables, process_variables_for
 
@@ -125,14 +126,31 @@ class YamlConfigDocument(IYamlConfigDocument, ABC):
         Resolve the $ref entry at the beginning of the document body and merge with referenced documents
         (changes this document in place).
 
-        May also be extended by subclasses to include sub-document resolving.
-
         :param lookup_paths: Paths to the repositories, where referenced should be looked up.
+
+        :final: Since 0.2.0 this function must not be extended, otherwise the $remove markers
+                will not be removed. Please use _load_subdocuments to load sub-documents during the merging step instead!
+
         :returns: self
         """
+
+        if 'resolve_and_merge_references' in vars(self.__class__):
+            warnings.warn("resolve_and_merge_references is final and must not be extended since "
+                          "Configcrunch 0.2, extend _load_subdocuments instead.", DeprecationWarning)
+
         resolve_and_merge(self, lookup_paths)
         self._initialize_data_after_merge()
+        self._load_subdocuments(lookup_paths)
+        delete_remove_markers(self)
         return self
+
+    def _load_subdocuments(self, lookup_paths: List[str]):
+        """
+        Load sub-documents during the merging step.
+        Override this to load custom sub-documents.
+        Make sure to check if the value you are trying to load is $remove (constant REMOVE) first!
+        """
+        pass
 
     def process_vars(self) -> 'YamlConfigDocument':
         """

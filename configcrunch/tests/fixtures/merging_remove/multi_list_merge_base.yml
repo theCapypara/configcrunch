@@ -1,0 +1,9 @@
+base:
+  $ref: /merge_multi_level
+  level_direct:
+    more:
+      value: $remove
+      list:
+        - "$remove::main"
+  more:
+    - "$remove::main"

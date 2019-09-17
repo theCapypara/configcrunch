@@ -35,7 +35,7 @@ chapters at either ``direct`` or in the map ``map`` as values:
 
 .. testcode:: main
 
-    from configcrunch import DocReference, load_subdocument
+    from configcrunch import DocReference, load_subdocument, REMOVE
 
     class Parent(YamlConfigDocument):
         @classmethod
@@ -49,15 +49,16 @@ chapters at either ``direct`` or in the map ``map`` as values:
                 'map': {str: DocReference(Example)}
             })
 
-        def resolve_and_merge_references(self, lookup_paths):
-            super().resolve_and_merge_references(lookup_paths)
-
+        def _load_subdocuments(self, lookup_paths):
             # direct entry processing
-            self["direct"] = load_subdocument(self["direct"], self, Example, lookup_paths)
+            if self["direct"] != REMOVE:
+                self["direct"] = load_subdocument(self["direct"], self, Example, lookup_paths)
 
             # map entry processing
-            for key, doc in self["map"].items():
-                self["map"][key] = load_subdocument(doc, self, Example, lookup_paths)
+            if self["map"] != REMOVE:
+                for key, doc in self["map"].items():
+                    if doc != REMOVE:
+                        self["map"][key] = load_subdocument(doc, self, Example, lookup_paths)
 
             return self
 

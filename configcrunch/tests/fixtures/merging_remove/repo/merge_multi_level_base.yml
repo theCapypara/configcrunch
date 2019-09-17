@@ -1,0 +1,9 @@
+base:
+  level_direct:
+    $ref: /multi_level_level
+    more:
+      value: shouldbegone
+      list:
+        - main
+  more:
+    - main

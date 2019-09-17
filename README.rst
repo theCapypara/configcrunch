@@ -72,7 +72,7 @@ This is an example that uses most of the features described above, using two doc
     # classes.py
     from schema import Schema, Optional
 
-    from configcrunch import YamlConfigDocument, DocReference, load_subdocument, variable_helper
+    from configcrunch import YamlConfigDocument, DocReference, load_subdocument, variable_helper, REMOVE
 
 
     class One(YamlConfigDocument):
@@ -90,9 +90,8 @@ This is an example that uses most of the features described above, using two doc
                 }
             )
 
-        def resolve_and_merge_references(self, lookup_paths):
-            super().resolve_and_merge_references(lookup_paths)
-            if "sub" in self:
+        def _load_subdocuments(self, lookup_paths):
+            if "sub" in self and "sub" != REMOVE:
                 self["sub"] = load_subdocument(self["sub"], self, Two, lookup_paths)
             return self
 

@@ -1,0 +1,9 @@
+base:
+  $ref: /merge_multi_level_base
+  level_direct:
+    more:
+      value: shouldbegone
+      list:
+        - main
+  more:
+    - main

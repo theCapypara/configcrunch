@@ -10,7 +10,7 @@ then the documents are merged on top of them. This allows you to overwrite and m
 .. testsetup:: main
 
     from schema import Schema, SchemaError, Optional
-    from configcrunch import YamlConfigDocument
+    from configcrunch import YamlConfigDocument, REMOVE
 
     class Example(YamlConfigDocument):
         @classmethod
@@ -39,15 +39,16 @@ then the documents are merged on top of them. This allows you to overwrite and m
                 'map': {str: DocReference(Example)}
             })
 
-        def resolve_and_merge_references(self, lookup_paths):
-            super().resolve_and_merge_references(lookup_paths)
-
+        def _load_subdocuments(self, lookup_paths):
             # direct entry processing
-            self["direct"] = load_subdocument(self["direct"], self, Example, lookup_paths)
+            if self["direct"] != REMOVE:
+                self["direct"] = load_subdocument(self["direct"], self, Example, lookup_paths)
 
             # map entry processing
-            for key, doc in self["map"].items():
-                self["map"][key] = load_subdocument(doc, self, Example, lookup_paths)
+            if self["map"] != REMOVE:
+                for key, doc in self["map"].items():
+                    if doc != REMOVE:
+                        self["map"][key] = load_subdocument(doc, self, Example, lookup_paths)
 
             return self
 

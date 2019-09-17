@@ -1,0 +1,6 @@
+level:
+    name: level
+    more:
+      value: shouldbegone
+      list:
+        - main

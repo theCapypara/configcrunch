@@ -12,3 +12,10 @@ class MergingRemove(ConfigcrunchTestCase):
             'base.yml',
             ['repo']
         )
+
+    def test_multi_level_list(self):
+        self.assertDocEqualMerging(
+            'multi_list_merge_expected.yml',
+            'multi_list_merge_base.yml',
+            ['repo']
+        )

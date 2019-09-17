@@ -6,7 +6,7 @@ Contains the logic to merge loaded documents.
 - load_subdocument may be used to load and merge sub-documents contained in YamlConfigDocuments.
 
 """
-from typing import Union, Type, List
+from typing import Union, Type, List, Optional
 
 from configcrunch import REF, REMOVE, REMOVE_FROM_LIST_PREFIX
 
@@ -32,7 +32,10 @@ def _merge_documents__recursion(target_node: any, source_node: any) -> any:
     if isinstance(source_node, dict) and isinstance(target_node, dict):
         new_node = target_node.copy()
         for key, value in source_node.items():
-            if value == REMOVE:
+            # Edge case: Normally we will remove all $remove markers after iterating over everything
+            #            to make sure everything is removed correctly. But if the key is $ref, we must remove
+            #            now, to make sure that the referenced document is not even loaded.
+            if key == REF and value == REMOVE:
                 if key in new_node:
                     del new_node[key]
             else:
@@ -53,10 +56,10 @@ def _merge_documents__recursion(target_node: any, source_node: any) -> any:
             in result
             if isinstance(x, str) and x.startswith(REMOVE_FROM_LIST_PREFIX)
         ]
-        # Remove all $remove:: entries in list and the entries to remove
+        # Remove all entries to remove
         result = list(filter(lambda x:
                              not isinstance(x, str)
-                             or (not x.startswith(REMOVE_FROM_LIST_PREFIX) and x not in removes),
+                             or x not in removes,
                              result))
         return result
 
@@ -65,13 +68,52 @@ def _merge_documents__recursion(target_node: any, source_node: any) -> any:
         merge_documents(source_node, target_node)
         return source_node
 
-    # IS $remove IN SOURCE AND ... IN TARGET
-    if source_node == REMOVE:
-        raise InvalidRemoveError("Tried to remove a node at an unexpected position")
-
     # IS SCALAR IN BOTH (or just in SOURCE)
     else:
         return source_node
+
+
+def _delete_remove_markers__recursion(doc: any) -> any:
+    """
+    Removes the $remove:: marker from all lists in doc.
+    """
+    # IS DICT
+    if isinstance(doc, dict):
+        doc = {k: v for k, v in doc.items() if v != REMOVE}
+        for key, value in doc.items():
+            doc[key] = _delete_remove_markers__recursion(value)
+        return doc
+
+    # IS LIST
+    elif isinstance(doc, list) :
+        # Remove all $remove:: entries
+        doc = list(filter(lambda x:
+                          not isinstance(x, str)
+                          or not x.startswith(REMOVE_FROM_LIST_PREFIX),
+                          doc))
+        return doc
+
+    # IS YCD
+    elif isinstance(doc, IYamlConfigDocument):
+        doc.doc = _delete_remove_markers__recursion(doc.doc)
+        return doc
+
+    # IS $remove
+    if doc == REMOVE:
+        raise InvalidRemoveError("Tried to remove a node at an unexpected position")
+
+    # IS SCALAR
+    else:
+        return doc
+
+
+def delete_remove_markers(doc: 'YamlConfigDocument') -> None:
+    """
+    Remove the $remove and $remove:: markers from the document
+    :param doc:
+    :return:
+    """
+    _delete_remove_markers__recursion(doc)
 
 
 def merge_documents(target: 'YamlConfigDocument', source: 'YamlConfigDocument') -> None:
@@ -129,7 +171,7 @@ def load_subdocument(
         source_doc: 'YamlConfigDocument',
         doc_clss: 'Type[YamlConfigDocument]',
         lookup_paths: List[str],
-) -> 'YamlConfigDocument':
+) -> Optional['YamlConfigDocument']:
     """
     Load a subdocument of a specific type. This will convert the dict at this position
     into a YamlConfigDocument with the matching type and perform resolve_and_merge_references
