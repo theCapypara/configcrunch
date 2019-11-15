@@ -154,10 +154,11 @@ def resolve_and_merge(doc: 'YamlConfigDocument', lookup_paths: List[str]) -> Non
             prev_referenced_doc = referenced_doc
         if prev_referenced_doc is None:
             if doc.absolute_paths:
-                raise ReferencedDocumentNotFound("Referenced document %s not found. Requested by a document at %s"
-                                                 % (doc[REF], doc.absolute_paths[0]))
+                raise ReferencedDocumentNotFound(
+                    f"Referenced document {doc[REF]} not found. Requested by a document at {doc.absolute_paths[0]}"
+                )
             else:
-                raise ReferencedDocumentNotFound("Referenced document %s not found." % doc[REF])
+                raise ReferencedDocumentNotFound(f"Referenced document {doc[REF]} not found.")
         # Resolve entire referenced docs
         resolve_and_merge(prev_referenced_doc, lookup_paths)
         # Merge content of current doc into referenced doc (and execute $remove's on the way)

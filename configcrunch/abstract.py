@@ -81,7 +81,7 @@ class YamlConfigDocument(IYamlConfigDocument, ABC):
             entire_document = yaml.safe_load(stream)
         # The document must start with a header matching it's class
         if not isinstance(entire_document, dict):
-            raise InvalidDocumentError("The document at %s is invalid" % path_to_yaml)
+            raise InvalidDocumentError(f"The document at {path_to_yaml} is invalid")
         if cls.header() not in entire_document:
             raise InvalidHeaderError("The document does not have a valid header. Expected was: " + cls.header())
         body = entire_document[cls.header()]
@@ -243,7 +243,7 @@ class YamlConfigDocument(IYamlConfigDocument, ABC):
         return recursive_docs_to_dicts({self.header(): self.doc.copy()})
 
 
-class DocReference(object):
+class DocReference:
     """
     For Schemas.
     Marks a reference to another YamlConfigDocument inside a schema.

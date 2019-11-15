@@ -133,7 +133,7 @@ def load_referenced_document(document: 'YamlConfigDocument', lookup_paths: List[
     for absolute_path in absolute_paths(ref_path_in_repo, lookup_paths):
         for doc_dict in load_dicts(absolute_path):
             if not isinstance(doc_dict, dict):
-                raise InvalidDocumentError("The document at %s is invalid" % absolute_path)
+                raise InvalidDocumentError(f"The document at {absolute_path} is invalid")
             doc = dict_to_doc_cls(doc_dict, doc_cls, absolute_path, ref_path_in_repo, document)
             docs.append(doc)
     return docs
