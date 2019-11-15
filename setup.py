@@ -16,7 +16,7 @@ setup(
     long_description_content_type='text/x-rst',
     url='https://github.com/Parakoopa/configcrunch/',
     install_requires=[
-        'schema >= 0.6',
+        'schema >= 0.7',
         'pyyaml >= 5.1',
         'jinja2 >= 2.10.1'
     ],
