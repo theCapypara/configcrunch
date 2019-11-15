@@ -37,7 +37,8 @@ class YamlConfigDocumentStub(YamlConfigDocument):
     def header(cls) -> str:
         raise NotImplementedError("not available for stub")
 
-    def schema(self) -> Schema:
+    @classmethod
+    def schema(cls) -> Schema:
         raise NotImplementedError("not available for stub")
 
     def validate(self) -> bool:

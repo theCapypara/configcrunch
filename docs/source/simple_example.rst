@@ -17,7 +17,8 @@ In this simple example we'll use the header ``example`` and a schema that valida
         def header(cls) -> str:
             return "example"
 
-        def schema(self) -> Schema:
+        @classmethod
+        def schema(cls) -> Schema:
             return Schema(any)
 
 This class can then be used to load all YAML documents with the header example:

@@ -93,8 +93,9 @@ class YamlConfigDocument(IYamlConfigDocument, ABC):
         """ Header that YAML-documents must contain. """
         pass
 
+    @classmethod
     @abstractmethod
-    def schema(self) -> Schema:
+    def schema(cls) -> Schema:
         """ Schema that the document should be validated against. """
         pass
 

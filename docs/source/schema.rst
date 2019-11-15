@@ -27,7 +27,8 @@ example all fields shown are optional, except for ``this``:
         def header(cls) -> str:
             return "example"
 
-        def schema(self) -> Schema:
+        @classmethod
+        def schema(cls) -> Schema:
             return Schema({
                 'this': str,
                 Optional('int'): int,

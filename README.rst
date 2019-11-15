@@ -80,7 +80,8 @@ This is an example that uses most of the features described above, using two doc
         def header(cls) -> str:
             return "one"
 
-        def schema(self) -> Schema:
+        @classmethod
+        def schema(cls) -> Schema:
             return Schema(
                 {
                     Optional('$ref'): str,  # reference to other One documents
@@ -105,7 +106,8 @@ This is an example that uses most of the features described above, using two doc
         def header(cls) -> str:
             return "two"
 
-        def schema(self) -> Schema:
+        @classmethod
+        def schema(cls) -> Schema:
             return Schema(
                 {
                     Optional('$ref'): str,  # reference to other Two documents

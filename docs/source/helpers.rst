@@ -20,7 +20,8 @@ that returns the parent document.
         def header(cls) -> str:
             return "example"
 
-        def schema(self) -> Schema:
+        @classmethod
+        def schema(cls) -> Schema:
             return Schema({
                 'this': str,
                 'int': int

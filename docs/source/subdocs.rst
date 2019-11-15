@@ -25,7 +25,8 @@ chapters at either ``direct`` or in the map ``map`` as values:
         def header(cls) -> str:
             return "example"
 
-        def schema(self) -> Schema:
+        @classmethod
+        def schema(cls) -> Schema:
             return Schema({
                 'this': str,
                 Optional('int'): int,
@@ -42,7 +43,8 @@ chapters at either ``direct`` or in the map ``map`` as values:
         def header(cls) -> str:
             return "parent"
 
-        def schema(self) -> Schema:
+        @classmethod
+        def schema(cls) -> Schema:
             return Schema({
                 'name': str,
                 'direct': DocReference(Example),

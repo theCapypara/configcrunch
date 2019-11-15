@@ -17,7 +17,8 @@ then the documents are merged on top of them. This allows you to overwrite and m
         def header(cls) -> str:
             return "example"
 
-        def schema(self) -> Schema:
+        @classmethod
+        def schema(cls) -> Schema:
             return Schema({
                 'this': str,
                 Optional('int'): int,
@@ -32,7 +33,8 @@ then the documents are merged on top of them. This allows you to overwrite and m
         def header(cls) -> str:
             return "parent"
 
-        def schema(self) -> Schema:
+        @classmethod
+        def schema(cls) -> Schema:
             return Schema({
                 'name': str,
                 'direct': DocReference(Example),

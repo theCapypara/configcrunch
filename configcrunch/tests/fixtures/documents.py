@@ -30,7 +30,8 @@ class Base(YamlConfigDocument):
     def header(cls) -> str:
         return "base"
 
-    def schema(self) -> Schema:
+    @classmethod
+    def schema(cls) -> Schema:
         return Schema(
             {
                 Optional('$ref'): str,  # reference to other Base documents
@@ -83,7 +84,8 @@ class Level(YamlConfigDocument):
     def header(cls) -> str:
         return "level"
 
-    def schema(self) -> Schema:
+    @classmethod
+    def schema(cls) -> Schema:
         return Schema(
             {
                 Optional('$ref'): str,  # reference to other Level documents
