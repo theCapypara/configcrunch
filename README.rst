@@ -1,7 +1,7 @@
 Configcrunch
 ============
 
-|build| |docs|
+|build| |docs| |pypi-version| |pypi-downloads| |pypi-license| |pypi-pyversions|
 
 .. |build| image:: https://jenkins.riptide.parakoopa.de/buildStatus/icon?job=configcrunch%2Fmaster
     :target: https://jenkins.riptide.parakoopa.de/blue/organizations/jenkins/configcrunch/activity
@@ -10,6 +10,20 @@ Configcrunch
 .. |docs| image:: https://readthedocs.org/projects/configcrunch/badge/?version=latest
     :target: https://configcrunch.readthedocs.io/en/latest/?badge=latest
     :alt: Documentation Status
+
+.. |pypi-version| image:: https://img.shields.io/pypi/v/configcrunch
+    :target: https://pypi.org/project/configcrunch/
+    :alt: Version
+
+.. |pypi-downloads| image:: https://img.shields.io/pypi/dm/configcrunch
+    :target: https://pypi.org/project/configcrunch/
+    :alt: Downloads
+
+.. |pypi-license| image:: https://img.shields.io/pypi/l/configcrunch
+    :alt: License (MIT)
+
+.. |pypi-pyversions| image:: https://img.shields.io/pypi/pyversions/configcrunch
+    :alt: Supported Python versions
 
 Configcrunch is a Python library for reading YAML-based configuration files that aims to be simple
 while also providing some very powerful features.
