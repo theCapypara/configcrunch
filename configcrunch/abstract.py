@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 
 import yaml
 from schema import Schema,  SchemaError
-from typing import List, Type, Union
+from typing import List, Type, Union, Callable
 
 from configcrunch import REF
 from configcrunch.interface import IYamlConfigDocument
@@ -163,12 +163,14 @@ class YamlConfigDocument(IYamlConfigDocument, ABC):
         self._initialize_data_after_variables()
         return self
 
-    def process_vars_for(self, target: str) -> str:
+    def process_vars_for(self, target: str, additional_helpers: List[Callable] = None) -> str:
         """
         Process all {{ variables }} inside the specified string as if it were part of this document.
         All references must be resolved beforehand to work correctly (resolve_and_merge_references).
+
+        additional_helpers may contain additional variable helper functions to use.
         """
-        return process_variables_for(self, target)
+        return process_variables_for(self, target, additional_helpers)
 
     @variable_helper
     def parent(self) -> 'YamlConfigDocument':

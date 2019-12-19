@@ -1,5 +1,5 @@
 from jinja2 import Environment
-from typing import TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING, Callable, List
 from configcrunch.errors import VariableProcessingError
 
 from configcrunch.interface import IYamlConfigDocument
@@ -38,13 +38,17 @@ class DocumentTraverser:
             return callback(self, input_node, *args)
 
 
-def apply_variable_resolution(input_str: str, document: 'YamlConfigDocument'):
+def apply_variable_resolution(input_str: str, document: 'YamlConfigDocument', additional_helpers: List[Callable] = None):
     """Process variables for a document in a single string"""
     template = jinja2env.from_string(input_str)
 
     # With inspiration from https://stackoverflow.com/a/47291097
     for helper in document.bound_helpers:
         template.globals[helper.__name__] = helper
+
+    if additional_helpers is not None:
+        for helper in additional_helpers:
+            template.globals[helper.__name__] = helper
 
     return template.render(document.doc)
 
@@ -95,6 +99,6 @@ def process_variables(ycd: 'YamlConfigDocument'):
     return ycd
 
 
-def process_variables_for(ycd: 'YamlConfigDocument', target: str):
+def process_variables_for(ycd: 'YamlConfigDocument', target: str, additional_helpers: List[Callable] = None):
     """Replace variables in target as if it were a string in the document ycd"""
-    return apply_variable_resolution(target, ycd)
+    return apply_variable_resolution(target, ycd, additional_helpers)
