@@ -63,7 +63,7 @@ class YamlConfigDocumentStub(YamlConfigDocument):
         raise NotImplementedError("not available for stub")
 
     def parent(self) -> 'YamlConfigDocument':
-        raise NotImplementedError("not available for stub")
+        return self.parent_doc
 
     # Magic methods for accessing doc are left from super.
 
