@@ -43,14 +43,24 @@ def apply_variable_resolution(input_str: str, document: 'YamlConfigDocument', ad
     template = jinja2env.from_string(input_str)
 
     # With inspiration from https://stackoverflow.com/a/47291097
+
+    added_globals = []
     for helper in document.bound_helpers:
         template.globals[helper.__name__] = helper
+        added_globals.append(helper.__name__)
 
     if additional_helpers is not None:
         for helper in additional_helpers:
             template.globals[helper.__name__] = helper
+            added_globals.append(helper.__name__)
 
-    return template.render(document.doc)
+    r = template.render(document.doc)
+
+    # Remove globals again:
+    for helper_name in added_globals:
+        del template.globals[helper_name]
+
+    return r
 
 
 def __process_variables_for_subdoc(traverse: DocumentTraverser, input_node: any) -> any:
