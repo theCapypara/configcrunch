@@ -79,19 +79,15 @@ def _delete_remove_markers__recursion(doc: any) -> any:
     """
     # IS DICT
     if isinstance(doc, dict):
-        doc = {k: v for k, v in doc.items() if v != REMOVE}
-        for key, value in doc.items():
-            doc[key] = _delete_remove_markers__recursion(value)
-        return doc
+        return {k: _delete_remove_markers__recursion(v) for k, v in doc.items() if v != REMOVE}
 
     # IS LIST
-    elif isinstance(doc, list) :
+    elif isinstance(doc, list):
         # Remove all $remove:: entries
-        doc = list(filter(lambda x:
-                          not isinstance(x, str)
-                          or not x.startswith(REMOVE_FROM_LIST_PREFIX),
-                          doc))
-        return doc
+        return list(filter(lambda x:
+                           not isinstance(x, str)
+                           or not x.startswith(REMOVE_FROM_LIST_PREFIX),
+                           doc))
 
     # IS YCD
     elif isinstance(doc, IYamlConfigDocument):
