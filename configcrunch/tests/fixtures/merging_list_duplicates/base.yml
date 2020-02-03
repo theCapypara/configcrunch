@@ -1,0 +1,9 @@
+base:
+    $ref: /merge
+    str_field: hello
+    int_field: 1234
+    more:
+      - '$remove::e'
+      - a
+      - c
+      - {d: 'd'}

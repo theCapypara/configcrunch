@@ -1,0 +1,11 @@
+base:
+    str_field: hello
+    int_field: 1234
+    more:
+      - a
+      - a
+      - b
+      - {d: 'd'}
+      - a
+      - c
+      - {d: 'd'}

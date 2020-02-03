@@ -48,7 +48,7 @@ def _merge_documents__recursion(target_node: any, source_node: any) -> any:
     # IS LIST IN SOURCE AND TARGET
     elif isinstance(source_node, list) and isinstance(target_node, list):
         result = list(target_node)
-        result.extend(x for x in source_node if x not in target_node)
+        result.extend(source_node)
         # Collect all $remove::
         removes = [
             x.split(REMOVE_FROM_LIST_PREFIX, 1)[-1]
