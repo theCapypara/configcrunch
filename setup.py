@@ -9,7 +9,7 @@ with open(path.join(this_directory, 'README.rst'), encoding='utf-8') as f:
 
 setup(
     name='configcrunch',
-    version='0.3.3',
+    version='0.3.4',
     packages=find_packages(),
     description='Configuration parser based on YAML-Files with support for variables, overlaying and hierarchies',
     long_description=long_description,
