@@ -58,7 +58,8 @@ def apply_variable_resolution(input_str: str, document: 'YamlConfigDocument', ad
 
     # Remove globals again:
     for helper_name in added_globals:
-        del template.globals[helper_name]
+        if helper_name in template.globals:  # For some reason a helper might not be in there anymore...?
+            del template.globals[helper_name]
 
     return r
 
