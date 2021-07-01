@@ -61,6 +61,13 @@ def apply_variable_resolution(input_str: str, document: 'YamlConfigDocument', ad
         if helper_name in template.globals:  # For some reason a helper might not be in there anymore...?
             del template.globals[helper_name]
 
+    # Allow parsed ints to be read as such
+    try:
+        if not '|str' in input_str:
+            r = int(r)
+    except:
+        pass
+
     return r
 
 
