@@ -12,6 +12,17 @@ jinja2env = Environment()
 something_changed = False
 
 
+class ForceStr(str):
+    pass
+
+
+def str_filter(inp):
+    return '__forcestring__' + inp
+
+
+jinja2env.filters['str'] = str_filter
+
+
 class DocumentTraverser:
     def __init__(self):
         self.something_changed = False
@@ -54,6 +65,7 @@ def apply_variable_resolution(input_str: str, document: 'YamlConfigDocument', ad
             template.globals[helper.__name__] = helper
             added_globals.append(helper.__name__)
 
+    before = input_str
     r = template.render(document.doc)
 
     # Remove globals again:
@@ -62,11 +74,14 @@ def apply_variable_resolution(input_str: str, document: 'YamlConfigDocument', ad
             del template.globals[helper_name]
 
     # Allow parsed ints to be read as such
-    try:
-        if not '|str' in input_str:
-            r = int(r)
-    except:
-        pass
+    if before != r:
+        try:
+            if not r.startswith('__forcestring__'):
+                r = int(r)
+            else:
+                r = r[15:]
+        except:
+            pass
 
     return r
 
