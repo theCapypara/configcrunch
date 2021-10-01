@@ -4,5 +4,6 @@ base:
   more:
     a: b
     b: b
-    c: '12'
+    c: 12
+    d: '12'
     in_text: "This is the alphabet: a b c d"

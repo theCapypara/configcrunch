@@ -5,4 +5,5 @@ base:
     a: "{{ more.b }}"
     b: b
     c: "{{ int_field }}"
+    d: "{{ int_field|str }}"
     in_text: "This is the alphabet: a {{ more.a }} c d"

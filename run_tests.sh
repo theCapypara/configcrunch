@@ -15,7 +15,7 @@
 #
 # If you have problems, try to delete the .tox directory.
 #
-# This script is not used in CI, see Jenkinsfile instead.
+# This script is not used in CI, see Github Actions instead.
 #
 
 # 1. Build the runner image...
