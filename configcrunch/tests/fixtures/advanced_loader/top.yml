@@ -1,0 +1,6 @@
+base:
+  $ref: TOP
+  str_field: world
+  more:
+    middle_overriden: MIDDLE
+    top_set: TOP

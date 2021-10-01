@@ -1,0 +1,7 @@
+base:
+  $ref: DEEP
+  str_field: DEEP
+  int_field: -1
+  more:
+    deep_set: DEEP
+    deep_overriden: DEEP
