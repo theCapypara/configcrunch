@@ -17,7 +17,7 @@ class ForceStr(str):
 
 
 def str_filter(inp):
-    return '__forcestring__' + inp
+    return '__forcestring__' + str(inp)
 
 
 jinja2env.filters['str'] = str_filter

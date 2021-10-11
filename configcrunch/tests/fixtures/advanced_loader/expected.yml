@@ -1,0 +1,10 @@
+base:
+  $ref: TOP
+  str_field: world
+  int_field: 10
+  more:
+    deep_set: DEEP
+    deep_overriden: MIDDLE
+    middle_set: MIDDLE
+    middle_overriden: MIDDLE
+    top_set: TOP
