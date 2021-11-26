@@ -1,5 +1,5 @@
 from schema import Schema
-from typing import List
+from typing import List, Callable, Optional
 
 from configcrunch import YamlConfigDocument
 
@@ -59,10 +59,10 @@ class YamlConfigDocumentStub(YamlConfigDocument):
     def process_vars(self) -> 'YamlConfigDocument':
         raise NotImplementedError("not available for stub")
 
-    def process_vars_for(self, target: str) -> str:
+    def process_vars_for(self, target: str, additional_helpers: List[Callable] = None) -> str:
         raise NotImplementedError("not available for stub")
 
-    def parent(self) -> 'YamlConfigDocument':
+    def parent(self) -> Optional['YamlConfigDocument']:
         return self.parent_doc
 
     # Magic methods for accessing doc are left from super.

@@ -1,12 +1,11 @@
 from typing import TypeVar, Type
 
-from configcrunch import YamlConfigDocument
-from configcrunch.merger import merge_documents
+from configcrunch import YamlConfigDocument, merge_documents
 
 T = TypeVar('T', bound=YamlConfigDocument)
 
 
-def load_multiple_yml(doc_type: Type[T], *args: str) -> T:
+def load_multiple_yml(doc_type: Type[T], *in_args: str) -> T:
     """
     Loads (one or) multiple YAML files (paths specified by *args) into the
     given YamlConfigDocument model.
@@ -15,9 +14,9 @@ def load_multiple_yml(doc_type: Type[T], *args: str) -> T:
     ``merge_documents`` is used instead directly.
     """
     doc = None
-    if len(args) < 1:
+    if len(in_args) < 1:
         raise TypeError("At least one document path must be passed.")
-    args = list(reversed(args))
+    args = list(reversed(in_args))
     while len(args) > 0:
         new_doc = doc_type.from_yaml(args.pop())
         if doc is None:
@@ -25,4 +24,6 @@ def load_multiple_yml(doc_type: Type[T], *args: str) -> T:
         else:
             merge_documents(new_doc, doc)
             doc = new_doc
-    return doc
+    assert doc
+    return doc  # type: ignore
+

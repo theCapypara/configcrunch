@@ -6,8 +6,7 @@ from typing import List
 
 from schema import Schema, Optional
 
-from configcrunch import YamlConfigDocument, DocReference, load_subdocument, REMOVE
-from configcrunch.abstract import variable_helper
+from configcrunch import YamlConfigDocument, DocReference, load_subdocument, REMOVE, variable_helper
 
 
 class Base(YamlConfigDocument):

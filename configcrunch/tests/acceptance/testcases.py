@@ -8,9 +8,6 @@ from schema import SchemaError
 from configcrunch.tests.fixtures.documents import Base
 
 
-unittest.util._MAX_LENGTH = 2000
-
-
 class ConfigcrunchTestCase(unittest.TestCase, ABC):
 
     def setUp(self):
