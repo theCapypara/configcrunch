@@ -32,7 +32,7 @@ fn _main(py: Python<'_>, m: &PyModule) -> PyResult<()> {
     m.add("InvalidRemoveError", py.get_type::<InvalidRemoveError>())?;
 
     m.add_function(wrap_pyfunction!(load_subdocument, m)?)?;
-    m.add_function(wrap_pyfunction!(merge_documents, m)?)?;
+    m.add_function(wrap_pyfunction!(load_multiple_yml, m)?)?;
 
     m.add_class::<YamlConfigDocument>()?;
     m.add_class::<DocReference>()?;

@@ -6,9 +6,36 @@ use std::path::PathBuf;
 use pyo3::exceptions;
 pub use pyo3::prelude::*;
 use pyo3::types::{PyTuple, PyType};
-use crate::{InvalidDocumentError, InvalidHeaderError, REF, YamlConfigDocument};
+use crate::{InvalidDocumentError, InvalidHeaderError, merge_documents, REF, YamlConfigDocument};
 use crate::conv::{PyYamlConfigDocument, SimpleYcdValueType, YcdDict, YHashMap};
 use crate::conv::YcdValueType::YString;
+
+#[pyfunction(args="*")]
+/// Loads (one or) multiple YAML files (paths specified by *args) into the
+/// given YamlConfigDocument model.
+/// The documents are merged as if the rightmost document "$ref"'ed the document left to it, etc.
+/// until all documents are merged.  However ``resolve_and_merge_references`` is not called on the base model;
+/// an optimized internal merging is done instead.
+pub fn load_multiple_yml(py: Python, doc_type: &PyType, args: &PyTuple) -> PyResult<Py<YamlConfigDocument>> {
+    if args.is_empty() {
+        return Err(exceptions::PyTypeError::new_err("At least one document path must be passed."))
+    }
+    let mut args = args
+        .iter()
+        .map(|x| x.extract())
+        .collect::<PyResult<Vec<String>>>()?  // TODO: Not ideal but probably fine enough.
+        .into_iter()
+        .rev();
+    let mut doc: Option<PyYamlConfigDocument> = None;
+    if let Some(arg) = args.next() {
+        let new_doc = YamlConfigDocument::from_yaml(doc_type, py, arg.clone())?;
+        doc = Some(match doc {
+            None => new_doc,
+            Some(d) => merge_documents(py, new_doc, d)?
+        });
+    }
+    Ok(doc.unwrap().0)
+}
 
 /// Load the full absolute paths to the repositories (lookup paths) stored on disk.
 pub(crate) fn load_repos(lookup_paths: &[String]) -> Vec<String> {
@@ -114,16 +141,14 @@ pub(crate) fn dict_to_doc_cls(
         let new_abs_paths: Vec<String> = [absolute_path.to_string()]
             .into_iter().chain(parent.absolute_paths.clone().into_iter())
             .collect();
-        let new_doc = construct_new_ycd(py, doc_cls, [
+        return construct_new_ycd(py, doc_cls, [
             doc_cls.to_object(py),
             doc_dict.get(header).unwrap().to_object(py),
             ref_path_in_repo.into_py(py),
             parent_pyobj,
             (&parent.already_loaded_docs).to_object(py),
             new_abs_paths.into_py(py)
-        ])?;
-
-        return Ok(new_doc.extract::<Py<YamlConfigDocument>>(py)?.into());
+        ])
     }
 
     Err(InvalidHeaderError::new_err(
@@ -140,9 +165,9 @@ pub(crate) fn dict_to_doc_cls(
 pub(crate) fn load_referenced_document(
     py: Python, document: PyYamlConfigDocument, lookup_paths: &[String]
 ) -> PyResult<Vec<PyYamlConfigDocument>> {
-    let doc_ref = document.extract(py)?;
+    let doc_ref: YamlConfigDocument = document.extract(py)?;
     let ref_path_in_repo;
-    if let YString(path) = doc_ref.doc.extract(py)?.get(REF).unwrap() {
+    if let YString(path) = doc_ref.doc.get(REF).unwrap() {
         ref_path_in_repo = path_in_repo(&doc_ref.path, path);
         if ref_path_in_repo.starts_with("./") || ref_path_in_repo.starts_with("../") {
             // Invalid path
@@ -160,7 +185,7 @@ pub(crate) fn load_referenced_document(
             match dicts.into_iter().map(|doc_dict| dict_to_doc_cls(
                 py, doc_dict, doc_cls.as_ref(py), &absolute_path, &ref_path_in_repo, &doc_ref,
                 document.to_object(py)
-            )).collect() {
+            )).collect::<PyResult<Vec<PyYamlConfigDocument>>>() {
                 Ok(mut inner_vec) => out.append(&mut inner_vec),
                 Err(e) => return Err(e)
             };
@@ -170,12 +195,12 @@ pub(crate) fn load_referenced_document(
 }
 
 #[inline]
-pub(crate) fn construct_new_ycd<T, U>(py: Python, cls: &PyType, in_args: impl IntoIterator<Item = T, IntoIter = U>) -> PyResult<PyObject>
+pub(crate) fn construct_new_ycd<T, U>(py: Python, cls: &PyType, in_args: impl IntoIterator<Item = T, IntoIter = U>) -> PyResult<PyYamlConfigDocument>
     where
         T: ToPyObject,
         U: ExactSizeIterator<Item = T>,
 {
     let args = PyTuple::new(py, in_args);
     let slf: &PyAny = cls.getattr("__new__")?.call1(args)?;
-    Ok(slf.to_object(py))
+    Ok(slf.extract()?)
 }

@@ -16,12 +16,6 @@ pub(crate) struct YHashMap<K, V>(pub HashMap<K, V>);
 #[derive(Clone, FromPyObject, Debug)]
 pub struct PyYamlConfigDocument(pub Py<YamlConfigDocument>);
 
-#[derive(Clone, Debug)]
-pub struct PyYcdDict(pub PyObject);
-
-#[derive(Clone, Debug)]
-pub struct PyYcdList(pub PyObject);
-
 impl PyYamlConfigDocument {
     pub fn extract(&self, py: Python) -> PyResult<YamlConfigDocument> {
         self.0.extract(py)
@@ -37,47 +31,11 @@ impl PyYamlConfigDocument {
     }
 }
 
-impl PyYcdDict {
-    pub fn extract(&self, py: Python) -> PyResult<YcdDict> {
-        self.0.extract(py)
-    }
-    pub fn clone_ref(&self, py: Python) -> Self {
-        Self(self.0.clone_ref(py))
-    }
-    pub fn getattr(&self, py: Python, attr: &str) -> PyResult<PyObject> {
-        self.0.getattr(py, attr)
-    }
-    pub fn to_object(&self, py: Python) -> PyObject {
-        self.0.to_object(py)
-    }
-}
-
-impl PyYcdList {
-    pub fn extract(&self, py: Python) -> PyResult<YcdList> {
-        self.0.extract(py)
-    }
-    pub fn clone_ref(&self, py: Python) -> Self {
-        Self(self.0.clone_ref(py))
-    }
-    pub fn getattr(&self, py: Python, attr: &str) -> PyResult<PyObject> {
-        self.0.getattr(py, attr)
-    }
-    pub fn to_object(&self, py: Python) -> PyObject {
-        self.0.to_object(py)
-    }
-}
-
-impl Default for PyYcdDict {
-    fn default() -> Self {
-        Python::with_gil(|py| YcdDict::new().to_object(py).into())
-    }
-}
-
 #[derive(Serialize, Clone, Debug)]
 pub enum YcdValueType {
     Ycd(PyYamlConfigDocument),
-    Dict(PyYcdDict),
-    List(PyYcdList),
+    Dict(YcdDict),
+    List(YcdList),
     YString(String),
     Bool(bool),
     Int(i64),
@@ -126,8 +84,8 @@ impl Display for SimpleYcdValueType {
 
 impl FromPyObject<'source> for YcdValueType {
     fn extract(v: &'source PyAny) -> PyResult<Self> {
-        if let Ok(vv) = v.extract::<Py<YamlConfigDocument>>() {
-            Ok(YcdValueType::Ycd(vv.into()))
+        if let Ok(v) = v.extract::<Py<YamlConfigDocument>>() {
+            Ok(YcdValueType::Ycd(v.into()))
         } else if let Ok(v) = <String>::extract(v) {
             Ok(YcdValueType::YString(v))
         } else if let Ok(v) = <i64>::extract(v) {
@@ -137,29 +95,9 @@ impl FromPyObject<'source> for YcdValueType {
         } else if let Ok(v) = <bool>::extract(v) {
             Ok(YcdValueType::Bool(v))
         }  else if let Ok(v) = <Vec<YcdValueType>>::extract(v) {
-            Ok(YcdValueType::List(v.into()))
+            Ok(YcdValueType::List(v))
         }else if let Ok(v) = <HashMap<String, YcdValueType>>::extract(v) {
-            Ok(YcdValueType::Dict(v.into()))
-        } else {
-            Err(exceptions::PyTypeError::new_err(format!("Could not map type for {:?}", v)))
-         }
-    }
-}
-
-impl FromPyObject<'source> for PyYcdDict {
-    fn extract(v: &'source PyAny) -> PyResult<Self> {
-        if let Ok(vv) = v.extract::<YcdDict>() {
-            Ok(vv.into_py(v.py()).into())
-        } else {
-            Err(exceptions::PyTypeError::new_err(format!("Could not map type for {:?}", v)))
-         }
-    }
-}
-
-impl FromPyObject<'source> for PyYcdList {
-    fn extract(v: &'source PyAny) -> PyResult<Self> {
-        if let Ok(vv) = v.extract::<YcdList>() {
-            Ok(vv.into_py(v.py()).into())
+            Ok(YcdValueType::Dict(v))
         } else {
             Err(exceptions::PyTypeError::new_err(format!("Could not map type for {:?}", v)))
          }
@@ -179,9 +117,9 @@ impl From<&Value> for YcdValueType {
                 }
             }
             Value::String(c) => YcdValueType::YString(c.clone()),
-            Value::Array(c) => YcdValueType::List(c.iter().map(|x| x.into()).collect::<YcdList>().into()),
+            Value::Array(c) => YcdValueType::List(c.iter().map(|x| x.into()).collect::<YcdList>()),
             Value::Object(c) => YcdValueType::Dict(
-                c.iter().map(|(k,v)| (k.clone(), v.into())).collect::<YcdDict>().into()
+                c.iter().map(|(k,v)| (k.clone(), v.into())).collect::<YcdDict>()
             )
         }
     }
@@ -199,18 +137,6 @@ impl IntoPy<PyObject> for YcdValueType {
             YcdValueType::Float(v) => v.into_py(py),
             //YcdValueType::CatchAll(v) => v.into_py(py)
         }
-    }
-}
-
-impl IntoPy<PyObject> for PyYcdDict {
-    fn into_py(self, py: Python) -> PyObject {
-        self.0.into_py(py)
-    }
-}
-
-impl IntoPy<PyObject> for PyYcdList {
-    fn into_py(self, py: Python) -> PyObject {
-        self.0.into_py(py)
     }
 }
 
@@ -245,32 +171,7 @@ impl Serialize for PyYamlConfigDocument {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
         Python::with_gil(|py|
             match self.0.extract::<YamlConfigDocument>(py) {
-                Ok(ycd) => match ycd.doc.extract(py) {
-                    Ok(ycddoc) => serializer.collect_map(ycddoc),
-                    Err(_) => panic!("Internal serialization failed.")
-                },
-                Err(_) => panic!("Internal serialization failed.")
-            }
-        )
-    }
-}
-
-impl Serialize for PyYcdDict {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
-        Python::with_gil(|py|
-            match self.0.extract::<YcdDict>(py) {
-                Ok(r) => serializer.collect_map(r),
-                Err(_) => panic!("Internal serialization failed.")
-            }
-        )
-    }
-}
-
-impl Serialize for PyYcdList {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
-        Python::with_gil(|py|
-            match self.0.extract::<YcdList>(py) {
-                Ok(r) => serializer.collect_seq(r),
+                Ok(ycd) => serializer.collect_map(ycd.doc),
                 Err(_) => panic!("Internal serialization failed.")
             }
         )
@@ -283,35 +184,11 @@ impl From<Py<YamlConfigDocument>> for PyYamlConfigDocument {
     }
 }
 
-impl From<PyObject> for PyYcdDict {
-    fn from(v: PyObject) -> Self {
-        Self(v)
-    }
-}
-
-impl From<PyObject> for PyYcdList {
-    fn from(v: PyObject) -> Self {
-        Self(v)
-    }
-}
-
-impl From<YcdDict> for PyYcdDict {
-    fn from(v: YcdDict) -> Self {
-        Python::with_gil(|py| Self(v.into_py(py)))
-    }
-}
-
-impl From<YcdList> for PyYcdList {
-    fn from(v: YcdList) -> Self {
-        Python::with_gil(|py| Self(v.into_py(py)))
-    }
-}
-
 impl From<SimpleYcdValueType> for YcdValueType {
     fn from(e: SimpleYcdValueType) -> Self {
         match e {
-            SimpleYcdValueType::Dict(v) => YcdValueType::Dict(v.into_iter().map(|(k, v)| (k, v.into())).collect::<YcdDict>().into()),
-            SimpleYcdValueType::List(v) => YcdValueType::List(v.into_iter().map(|x| x.into()).collect::<YcdList>().into()),
+            SimpleYcdValueType::Dict(v) => YcdValueType::Dict(v.into_iter().map(|(k, v)| (k, v.into())).collect::<YcdDict>()),
+            SimpleYcdValueType::List(v) => YcdValueType::List(v.into_iter().map(|x| x.into()).collect::<YcdList>()),
             SimpleYcdValueType::YString(v) => YcdValueType::YString(v),
             SimpleYcdValueType::Bool(v) => YcdValueType::Bool(v),
             SimpleYcdValueType::Int(v) => YcdValueType::Int(v),
@@ -323,8 +200,8 @@ impl From<SimpleYcdValueType> for YcdValueType {
 impl From<YcdValueType> for SimpleYcdValueType {
     fn from(e: YcdValueType) -> Self {
         match e {
-            YcdValueType::Dict(v) => Python::with_gil(|py| SimpleYcdValueType::Dict(v.extract(py).unwrap().into_iter().map(|(k, v)| (k, v.into())).collect())),
-            YcdValueType::List(v) => Python::with_gil(|py| SimpleYcdValueType::List(v.extract(py).unwrap().into_iter().map(|x| x.into()).collect())),
+            YcdValueType::Dict(v) => SimpleYcdValueType::Dict(v.into_iter().map(|(k, v)| (k, v.into())).collect()),
+            YcdValueType::List(v) => SimpleYcdValueType::List(v.into_iter().map(|x| x.into()).collect()),
             YcdValueType::YString(v) => SimpleYcdValueType::YString(v),
             YcdValueType::Bool(v) => SimpleYcdValueType::Bool(v),
             YcdValueType::Int(v) => SimpleYcdValueType::Int(v),

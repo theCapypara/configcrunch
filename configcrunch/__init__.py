@@ -1,9 +1,6 @@
-import yaml
-
-from configcrunch._main import YamlConfigDocument, DocReference, load_subdocument, merge_documents, \
+from configcrunch._main import YamlConfigDocument, DocReference, load_multiple_yml, load_subdocument, \
     ConfigcrunchError, ReferencedDocumentNotFound, CircularDependencyError, \
     VariableProcessingError, InvalidDocumentError, InvalidHeaderError, InvalidRemoveError
-import configcrunch.advanced_loader
 
 # Constants
 REF = "$ref"
@@ -24,11 +21,14 @@ def variable_helper(func):
     return func
 
 
-def ycd_representer(dumper, data):
-    return dumper.represent_mapping('!' + data.__class__.__name__, data.doc)
+try:
+    import yaml
+    def ycd_representer(dumper, data):
+        return dumper.represent_mapping('!' + data.__class__.__name__, data.items())
 
-
-yaml.add_multi_representer(YamlConfigDocument, ycd_representer)
+    yaml.add_multi_representer(YamlConfigDocument, ycd_representer)
+except ImportError:
+    pass
 
 
 # Public classes and functions
@@ -37,7 +37,7 @@ __all__ = [
     'DocReference',
     'variable_helper',
     'load_subdocument',
-    'merge_documents',
+    'load_multiple_yml',
 
     'ConfigcrunchError',
     'ReferencedDocumentNotFound',
@@ -45,7 +45,5 @@ __all__ = [
     'VariableProcessingError',
     'InvalidDocumentError',
     'InvalidHeaderError',
-    'InvalidRemoveError',
-
-    'advanced_loader'
+    'InvalidRemoveError'
 ]
