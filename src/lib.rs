@@ -1,19 +1,21 @@
 #![feature(path_try_exists)]
 #![feature(in_band_lifetimes)]
+#![feature(trait_alias)]
 
 use pyo3::prelude::*;
 use pyo3::{PyResult, Python, wrap_pyfunction};
 
-pub const REF: &str = "$ref";
-pub const REMOVE: &str = "$remove";
-pub const REMOVE_FROM_LIST_PREFIX: &str = "$remove::";
-pub const FORCE_STRING: &str = "__forcestring__";
+pub(crate) const REF: &str = "$ref";
+pub(crate) const REMOVE: &str = "$remove";
+pub(crate) const REMOVE_FROM_LIST_PREFIX: &str = "$remove::";
+pub(crate) const FORCE_STRING: &str = "__forcestring__";
 
-pub mod errors;
-pub mod loader;
-pub mod merger;
-pub mod variables;
-pub mod ycd;
+pub(crate) mod errors;
+pub(crate) mod loader;
+pub(crate) mod merger;
+pub(crate) mod variables;
+pub(crate) mod ycd;
+mod minijinja;
 mod conv;
 
 use crate::errors::*;
@@ -31,8 +33,8 @@ fn _main(py: Python<'_>, m: &PyModule) -> PyResult<()> {
     m.add("InvalidHeaderError", py.get_type::<InvalidHeaderError>())?;
     m.add("InvalidRemoveError", py.get_type::<InvalidRemoveError>())?;
 
-    m.add_function(wrap_pyfunction!(load_subdocument, m)?)?;
     m.add_function(wrap_pyfunction!(load_multiple_yml, m)?)?;
+    m.add_function(wrap_pyfunction!(test_subdoc_specs, m)?)?;
 
     m.add_class::<YamlConfigDocument>()?;
     m.add_class::<DocReference>()?;

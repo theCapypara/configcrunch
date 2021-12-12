@@ -1,4 +1,4 @@
-from configcrunch._main import YamlConfigDocument, DocReference, load_multiple_yml, load_subdocument, \
+from configcrunch._main import YamlConfigDocument, DocReference, load_multiple_yml, \
     ConfigcrunchError, ReferencedDocumentNotFound, CircularDependencyError, \
     VariableProcessingError, InvalidDocumentError, InvalidHeaderError, InvalidRemoveError
 
@@ -36,7 +36,6 @@ __all__ = [
     'YamlConfigDocument',
     'DocReference',
     'variable_helper',
-    'load_subdocument',
     'load_multiple_yml',
 
     'ConfigcrunchError',

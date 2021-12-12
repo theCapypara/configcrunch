@@ -1,7 +1,7 @@
-import collections
 import os
 import unittest
 from abc import abstractmethod, ABC
+from collections.abc import Hashable
 
 import yaml
 from schema import SchemaError
@@ -67,7 +67,7 @@ class ConfigcrunchTestCase(unittest.TestCase, ABC):
 def sortby(x):
     """Return integer hash for all non-numbers (if possible, otherwise inf). To make everything sortable"""
     if x.__class__.__lt__ != x.__lt__:
-        if isinstance(x, collections.Hashable):
+        if isinstance(x, Hashable):
             return hash(x)
         return float('inf')
     return x

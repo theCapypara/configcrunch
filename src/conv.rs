@@ -1,38 +1,55 @@
 use std::collections::HashMap;
-use std::fmt::{Display, Formatter};
+use std::fmt::{Debug, Display, Formatter};
 use pyo3::exceptions;
 use pyo3::prelude::*;
 use pyo3::types::{PyBool, PyDict, PyFloat, PyInt, PyList, PyString};
 use serde::{Deserialize, Serialize, Serializer};
-use tera::{Number, Value};
 use crate::YamlConfigDocument;
 
-pub type YcdDict = HashMap<String, YcdValueType>;
-pub type YcdList = Vec<YcdValueType>;
+pub(crate) type YcdDict = HashMap<String, YcdValueType>;
+pub(crate) type YcdList = Vec<YcdValueType>;
+#[derive(Debug)]
+pub(crate) struct YHashMap<K, V>(pub(crate) HashMap<K, V>);
 
-pub(crate) struct YcdPyErr(pub PyErr);
-pub(crate) struct YHashMap<K, V>(pub HashMap<K, V>);
+impl<K: Debug, V: Debug> Display for YHashMap<K, V> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
+    }
+}
 
-#[derive(Clone, FromPyObject, Debug)]
-pub struct PyYamlConfigDocument(pub Py<YamlConfigDocument>);
+#[derive(Clone, Debug)]
+pub(crate) struct PyYamlConfigDocument(pub(crate) Py<YamlConfigDocument>);
 
 impl PyYamlConfigDocument {
-    pub fn extract(&self, py: Python) -> PyResult<YamlConfigDocument> {
-        self.0.extract(py)
+    pub(crate) fn clone_ref(&self, py: Python) -> PyYamlConfigDocument {
+        self.0.clone_ref(py).into()
     }
-    pub fn clone_ref(&self, py: Python) -> Self {
-        Self(self.0.clone_ref(py))
+    pub fn as_ref(&'py self, py: Python<'py>) -> &'py PyCell<YamlConfigDocument> {
+        self.0.as_ref(py)
     }
-    pub fn getattr(&self, py: Python, attr: &str) -> PyResult<PyObject> {
+    pub(crate) fn getattr(&self, py: Python, attr: &str) -> PyResult<PyObject> {
         self.0.getattr(py, attr)
     }
-    pub fn to_object(&self, py: Python) -> PyObject {
+    pub(crate) fn to_object(&self, py: Python) -> PyObject {
         self.0.to_object(py)
+    }
+    pub(crate) fn borrow<'py>(&'py self, py: Python<'py>) -> PyRef<'py, YamlConfigDocument> {
+        self.0.borrow(py)
+    }
+    pub(crate) fn borrow_mut<'py>(&'py self, py: Python<'py>) -> PyRefMut<'py, YamlConfigDocument> {
+        self.0.borrow_mut(py)
+    }
+}
+
+impl IntoPy<PyObject> for PyYamlConfigDocument {
+    fn into_py(self, py: Python) -> PyObject {
+        self.0.into_py(py)
     }
 }
 
 #[derive(Serialize, Clone, Debug)]
-pub enum YcdValueType {
+#[serde(untagged)]
+pub(crate) enum YcdValueType {
     Ycd(PyYamlConfigDocument),
     Dict(YcdDict),
     List(YcdList),
@@ -40,6 +57,16 @@ pub enum YcdValueType {
     Bool(bool),
     Int(i64),
     Float(f64),
+}
+
+impl YcdValueType {
+    pub(crate) fn unwrap_dict(self) -> YcdDict {
+        if let YcdValueType::Dict(d) = self {
+            d
+        } else {
+            panic!("Did not contain a dict.")
+        }
+    }
 }
 
 /// Same as YcdValueType but without any containing Ycd; for deserialization
@@ -104,27 +131,6 @@ impl FromPyObject<'source> for YcdValueType {
     }
 }
 
-impl From<&Value> for YcdValueType {
-    fn from(v: &Value) -> Self {
-        match v {
-            Value::Null => YcdValueType::Bool(false),  // TODO: Not ideal!
-            Value::Bool(c) => YcdValueType::Bool(*c),
-            Value::Number(c) => {
-                if c.is_i64() {
-                    YcdValueType::Int(c.as_i64().unwrap())
-                } else {
-                    YcdValueType::Float(c.as_f64().unwrap())
-                }
-            }
-            Value::String(c) => YcdValueType::YString(c.clone()),
-            Value::Array(c) => YcdValueType::List(c.iter().map(|x| x.into()).collect::<YcdList>()),
-            Value::Object(c) => YcdValueType::Dict(
-                c.iter().map(|(k,v)| (k.clone(), v.into())).collect::<YcdDict>()
-            )
-        }
-    }
-}
-
 impl IntoPy<PyObject> for YcdValueType {
     fn into_py(self, py: Python) -> PyObject {
         match self {
@@ -143,7 +149,7 @@ impl IntoPy<PyObject> for YcdValueType {
 impl ToPyObject for YcdValueType {
     fn to_object(&self, py: Python) -> PyObject {
         match self {
-            YcdValueType::Ycd(v) => v.0.clone().into_py(py), // TODO: Probably not the fastest choice...
+            YcdValueType::Ycd(v) => v.0.to_object(py), // TODO: Probably not the fastest choice...
             YcdValueType::Dict(v) => v.to_object(py),
             YcdValueType::List(v) => v.to_object(py),
             YcdValueType::YString(v) => v.to_object(py),
@@ -152,18 +158,6 @@ impl ToPyObject for YcdValueType {
             YcdValueType::Float(v) => v.to_object(py),
             //YcdValueType::CatchAll(v) => v.to_object(py)
         }
-    }
-}
-
-impl From<YcdPyErr> for tera::Error {
-    fn from(e: YcdPyErr) -> Self {
-        tera::Error::from(e.0.to_string())
-    }
-}
-
-impl From<PyErr> for YcdPyErr {
-    fn from(e: PyErr) -> Self {
-        YcdPyErr(e)
     }
 }
 
@@ -181,6 +175,12 @@ impl Serialize for PyYamlConfigDocument {
 impl From<Py<YamlConfigDocument>> for PyYamlConfigDocument {
     fn from(v: Py<YamlConfigDocument>) -> Self {
         Self(v)
+    }
+}
+
+impl From<PyYamlConfigDocument> for Py<YamlConfigDocument> {
+    fn from(v: PyYamlConfigDocument) -> Self {
+        v.0
     }
 }
 
@@ -214,26 +214,6 @@ impl From<YcdValueType> for SimpleYcdValueType {
 impl From<YHashMap<String, SimpleYcdValueType>> for HashMap<String, YcdValueType> {
     fn from(h: YHashMap<String, SimpleYcdValueType>) -> Self {
         h.0.into_iter().map(|(k, v)| (k, v.into())).collect()
-    }
-}
-
-#[inline]
-pub(crate) fn py_to_simple_ycd(py: Python, v: PyObject) -> SimpleYcdValueType {
-    if let Ok(v) = v.extract::<&PyDict>(py) {
-        SimpleYcdValueType::from(v)
-    } else if let Ok(v) = v.extract::<&PyString>(py) {
-        SimpleYcdValueType::from(v)
-    } else if let Ok(v) = v.extract::<&PyInt>(py) {
-        SimpleYcdValueType::from(v)
-    } else if let Ok(v) = v.extract::<&PyFloat>(py) {
-        SimpleYcdValueType::from(v)
-    } else if let Ok(v) = v.extract::<&PyList>(py) {
-        SimpleYcdValueType::from(v)
-    } else if let Ok(v) = v.extract::<&PyBool>(py) {
-        SimpleYcdValueType::from(v)
-    } else {
-        // TODO: Support more?
-        SimpleYcdValueType::Bool(false)
     }
 }
 
@@ -290,18 +270,5 @@ impl From<&PyList> for SimpleYcdValueType {
 impl From<&PyBool> for SimpleYcdValueType {
     fn from(v: &PyBool) -> Self {
         SimpleYcdValueType::Bool(v.is_true())
-    }
-}
-
-impl From<SimpleYcdValueType> for Value {
-    fn from(v: SimpleYcdValueType) -> Self {
-        match v {
-            SimpleYcdValueType::Dict(v) => Value::Object(v.into_iter().map(|(k, v)| (k, v.into())).collect()),
-            SimpleYcdValueType::List(v) => Value::Array(v.into_iter().map(|x| x.into()).collect()),
-            SimpleYcdValueType::YString(v) => Value::String(v),
-            SimpleYcdValueType::Bool(v) => Value::Bool(v),
-            SimpleYcdValueType::Int(v) => Value::Number(Number::from(v)),
-            SimpleYcdValueType::Float(v) => Value::Number(Number::from_f64(v).unwrap())
-        }
     }
 }

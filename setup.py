@@ -11,7 +11,8 @@ with open(path.join(this_directory, 'README.rst'), encoding='utf-8') as f:
 setup(
     name='configcrunch',
     version='1.0.0',
-    packages=find_packages(),
+    packages=["configcrunch"],
+    package_data={"configcrunch": ["py.typed", "*.pyi"]},
     rust_extensions=[RustExtension(f"configcrunch._main", binding=Binding.PyO3)],
     description='Configuration parser based on YAML-Files with support for variables, overlaying and hierarchies',
     long_description=long_description,
@@ -23,6 +24,7 @@ setup(
     classifiers=[
         'Development Status :: 2 - Beta',
         'Programming Language :: Python',
+        'Programming Language :: Rust',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: MIT License',
         'Programming Language :: Python :: 3.6',
@@ -30,5 +32,8 @@ setup(
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
         'Programming Language :: Python :: 3.10',
-    ]
+    ],
+    # rust extensions are not zip safe, just like C-extensions.
+    zip_safe=False,
+    include_package_data=True,
 )

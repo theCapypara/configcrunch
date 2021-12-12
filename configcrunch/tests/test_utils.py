@@ -44,13 +44,16 @@ class YamlConfigDocumentStub(YamlConfigDocument):
     def validate(self) -> bool:
         raise NotImplementedError("not available for stub")
 
-    def _initialize_data_before_merge(self):
+    def _initialize_data_before_merge(self, *args):
         raise NotImplementedError("not available for stub")
 
-    def _initialize_data_after_merge(self):
+    def _initialize_data_after_merge(self, *args):
         raise NotImplementedError("not available for stub")
 
-    def _initialize_data_after_variables(self):
+    def _initialize_data_after_variables(self, *args):
+        raise NotImplementedError("not available for stub")
+
+    def _initialize_data_after_freeze(self):
         raise NotImplementedError("not available for stub")
 
     def resolve_and_merge_references(self, lookup_paths: List[str]) -> 'YamlConfigDocument':

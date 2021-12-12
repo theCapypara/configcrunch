@@ -12,6 +12,7 @@
    variables
    helpers
    api_docs
+   version1
 
 * :ref:`genindex`
 * :ref:`modindex`

@@ -4,7 +4,7 @@ use std::fs;
 use std::fs::File;
 use std::path::PathBuf;
 use pyo3::exceptions;
-pub use pyo3::prelude::*;
+pub(crate) use pyo3::prelude::*;
 use pyo3::types::{PyTuple, PyType};
 use crate::{InvalidDocumentError, InvalidHeaderError, merge_documents, REF, YamlConfigDocument};
 use crate::conv::{PyYamlConfigDocument, SimpleYcdValueType, YcdDict, YHashMap};
@@ -16,25 +16,28 @@ use crate::conv::YcdValueType::YString;
 /// The documents are merged as if the rightmost document "$ref"'ed the document left to it, etc.
 /// until all documents are merged.  However ``resolve_and_merge_references`` is not called on the base model;
 /// an optimized internal merging is done instead.
-pub fn load_multiple_yml(py: Python, doc_type: &PyType, args: &PyTuple) -> PyResult<Py<YamlConfigDocument>> {
+pub(crate) fn load_multiple_yml(py: Python, doc_type: &PyType, args: &PyTuple) -> PyResult<PyYamlConfigDocument> {
     if args.is_empty() {
         return Err(exceptions::PyTypeError::new_err("At least one document path must be passed."))
     }
-    let mut args = args
+    let args = args
         .iter()
-        .map(|x| x.extract())
-        .collect::<PyResult<Vec<String>>>()?  // TODO: Not ideal but probably fine enough.
-        .into_iter()
-        .rev();
+        .map(|x| x.extract::<String>());
     let mut doc: Option<PyYamlConfigDocument> = None;
-    if let Some(arg) = args.next() {
-        let new_doc = YamlConfigDocument::from_yaml(doc_type, py, arg.clone())?;
-        doc = Some(match doc {
-            None => new_doc,
-            Some(d) => merge_documents(py, new_doc, d)?
-        });
+    for rarg in args {
+        match rarg {
+            Ok(arg) => {
+                println!("load_multiple_yml: {:?}", arg);
+                let new_doc = YamlConfigDocument::from_yaml(doc_type, py, arg.clone())?;
+                doc = Some(match doc {
+                    None => new_doc,
+                    Some(d) => merge_documents(py, new_doc, d)?
+                });
+            }
+            Err(e) => return Err(e)
+        }
     }
-    Ok(doc.unwrap().0)
+    Ok(doc.unwrap())
 }
 
 /// Load the full absolute paths to the repositories (lookup paths) stored on disk.
@@ -133,20 +136,21 @@ pub(crate) fn load_yaml_file(path_to_yaml: &str) -> PyResult<YcdDict> {
 /// :param parent: parent document
 /// :return: instance of YamlConfigDocument containing doc_dict without the header
 pub(crate) fn dict_to_doc_cls(
-    py: Python, doc_dict: YcdDict, doc_cls: &PyType, absolute_path: &str, ref_path_in_repo: &str, parent: &YamlConfigDocument, parent_pyobj: PyObject,
+    py: Python, doc_dict: YcdDict, doc_cls: &PyType, absolute_path: &str, ref_path_in_repo: &str, parent: PyYamlConfigDocument,
 ) -> PyResult<PyYamlConfigDocument> {
+    let parent_ref = parent.borrow(py);
     let header = doc_cls.getattr("header")?.call0()?;
     let header: &str = header.extract()?;
     if doc_dict.contains_key(header) {
         let new_abs_paths: Vec<String> = [absolute_path.to_string()]
-            .into_iter().chain(parent.absolute_paths.clone().into_iter())
+            .into_iter().chain(parent_ref.absolute_paths.clone().into_iter())
             .collect();
         return construct_new_ycd(py, doc_cls, [
             doc_cls.to_object(py),
             doc_dict.get(header).unwrap().to_object(py),
             ref_path_in_repo.into_py(py),
-            parent_pyobj,
-            (&parent.already_loaded_docs).to_object(py),
+            parent.to_object(py),
+            parent_ref.already_loaded_docs.to_object(py),
             new_abs_paths.into_py(py)
         ])
     }
@@ -165,7 +169,7 @@ pub(crate) fn dict_to_doc_cls(
 pub(crate) fn load_referenced_document(
     py: Python, document: PyYamlConfigDocument, lookup_paths: &[String]
 ) -> PyResult<Vec<PyYamlConfigDocument>> {
-    let doc_ref: YamlConfigDocument = document.extract(py)?;
+    let doc_ref: PyRef<YamlConfigDocument> = document.borrow(py);
     let ref_path_in_repo;
     if let YString(path) = doc_ref.doc.get(REF).unwrap() {
         ref_path_in_repo = path_in_repo(&doc_ref.path, path);
@@ -183,8 +187,7 @@ pub(crate) fn load_referenced_document(
     for absolute_path in absolute_paths(&ref_path_in_repo, lookup_paths)? {
         if let Ok(dicts) = load_dicts(&absolute_path) {
             match dicts.into_iter().map(|doc_dict| dict_to_doc_cls(
-                py, doc_dict, doc_cls.as_ref(py), &absolute_path, &ref_path_in_repo, &doc_ref,
-                document.to_object(py)
+                py, doc_dict, doc_cls.as_ref(py), &absolute_path, &ref_path_in_repo, document.clone_ref(py)
             )).collect::<PyResult<Vec<PyYamlConfigDocument>>>() {
                 Ok(mut inner_vec) => out.append(&mut inner_vec),
                 Err(e) => return Err(e)
@@ -202,5 +205,5 @@ pub(crate) fn construct_new_ycd<T, U>(py: Python, cls: &PyType, in_args: impl In
 {
     let args = PyTuple::new(py, in_args);
     let slf: &PyAny = cls.getattr("__new__")?.call1(args)?;
-    Ok(slf.extract()?)
+    Ok(slf.extract::<Py<YamlConfigDocument>>()?.into())
 }

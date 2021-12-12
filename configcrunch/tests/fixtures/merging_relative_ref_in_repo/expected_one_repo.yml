@@ -4,5 +4,5 @@ base:
   more:
     base: base
     version: base
-    from_10: yes
-    from_folder_base: yes
+    from_10: "yes"
+    from_folder_base: "yes"

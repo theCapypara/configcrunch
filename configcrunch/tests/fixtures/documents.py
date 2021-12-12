@@ -2,11 +2,11 @@
 Classes that implement YamlConfigDocument and represent
 YAML documents for the tests.
 """
-from typing import List
+from typing import List, Tuple, Type
 
 from schema import Schema, Optional
 
-from configcrunch import YamlConfigDocument, DocReference, load_subdocument, REMOVE, variable_helper
+from configcrunch import YamlConfigDocument, DocReference, REMOVE, variable_helper
 
 
 class Base(YamlConfigDocument):
@@ -45,22 +45,13 @@ class Base(YamlConfigDocument):
             }
         )
 
-    def _load_subdocuments(self, lookup_paths: List[str]):
-        if "level_dict" in self and self["level_dict"] != REMOVE:
-            for key, doc in self["level_dict"].items():
-                if doc != REMOVE:
-                    self["level_dict"][key] = load_subdocument(doc, self, Level, lookup_paths)
-
-        if "level_array" in self and self["level_array"] != REMOVE:
-            new_level_array = []
-            for doc in self["level_array"]:
-                if isinstance(doc, dict):
-                    new_level_array.append(load_subdocument(doc, self, Level, lookup_paths))
-            self["level_array"] = new_level_array
-
-        if "level_direct" in self and self["level_direct"] != REMOVE:
-            self["level_direct"] = load_subdocument(self["level_direct"], self, Level, lookup_paths)
-        return self
+    @classmethod
+    def subdocuments(cls) -> List[Tuple[str, Type[YamlConfigDocument]]]:
+        return [
+            ("level_dict[]", Level),
+            ("level_array[]", Level),
+            ("level_direct", Level),
+        ]
 
     @variable_helper
     def simple_helper(self):
@@ -94,10 +85,11 @@ class Level(YamlConfigDocument):
             }
         )
 
-    def _load_subdocuments(self, lookup_paths: List[str]):
-        if "base_ref" in self:
-            self["base_ref"] = load_subdocument(self["base_ref"], self, Base, lookup_paths)
-        return self
+    @classmethod
+    def subdocuments(cls) -> List[Tuple[str, Type[YamlConfigDocument]]]:
+        return [
+            ("base_ref", Base),
+        ]
 
     @variable_helper
     def level_helper(self):

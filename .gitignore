@@ -105,6 +105,9 @@ venv.bak/
 # mkdocs documentation
 /site
 
+# pytest
+pytest.xml
+
 # mypy
 .mypy_cache/
 test_reports/

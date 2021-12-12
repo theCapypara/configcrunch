@@ -4,7 +4,7 @@ base:
   more:
     base: base
     version: base
-    second_repo_10: yes
-    from_10: yes
-    second_repo_folder_base: yes
-    from_folder_base: yes
+    second_repo_10: "yes"
+    from_10: "yes"
+    second_repo_folder_base: "yes"
+    from_folder_base: "yes"
