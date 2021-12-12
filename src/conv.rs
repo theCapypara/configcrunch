@@ -111,19 +111,41 @@ impl Display for SimpleYcdValueType {
 
 impl FromPyObject<'source> for YcdValueType {
     fn extract(v: &'source PyAny) -> PyResult<Self> {
+        match v.get_type().name()? {
+            "dict" => if let Ok(v) = <HashMap<String, YcdValueType>>::extract(v) {
+                return Ok(YcdValueType::Dict(v))
+            },
+            "list" => if let Ok(v) = <Vec<YcdValueType>>::extract(v) {
+                return Ok(YcdValueType::List(v))
+            },
+            "str" => if let Ok(v) = <String>::extract(v) {
+                return Ok(YcdValueType::YString(v))
+            },
+            "int" => if let Ok(v) = <i64>::extract(v) {
+                return Ok(YcdValueType::Int(v))
+            },
+            "bool" => if let Ok(v) = <bool>::extract(v) {
+                return Ok(YcdValueType::Bool(v))
+            }
+            "float" => if let Ok(v) = <f64>::extract(v) {
+                return Ok(YcdValueType::Float(v))
+            },
+            &_ => {/* Go to fallback*/}
+        }
+        // Fallback
         if let Ok(v) = v.extract::<Py<YamlConfigDocument>>() {
             Ok(YcdValueType::Ycd(v.into()))
         } else if let Ok(v) = <String>::extract(v) {
             Ok(YcdValueType::YString(v))
         } else if let Ok(v) = <i64>::extract(v) {
-            Ok(YcdValueType::Int(v  ))
+            Ok(YcdValueType::Int(v))
         } else if let Ok(v) = <f64>::extract(v) {
             Ok(YcdValueType::Float(v))
         } else if let Ok(v) = <bool>::extract(v) {
             Ok(YcdValueType::Bool(v))
-        }  else if let Ok(v) = <Vec<YcdValueType>>::extract(v) {
+        } else if let Ok(v) = <Vec<YcdValueType>>::extract(v) {
             Ok(YcdValueType::List(v))
-        }else if let Ok(v) = <HashMap<String, YcdValueType>>::extract(v) {
+        } else if let Ok(v) = <HashMap<String, YcdValueType>>::extract(v) {
             Ok(YcdValueType::Dict(v))
         } else {
             Err(exceptions::PyTypeError::new_err(format!("Could not map type for {:?}", v)))

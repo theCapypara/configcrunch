@@ -92,8 +92,10 @@ impl YamlConfigDocument {
     }
 
     #[classmethod]
-    pub(crate) fn from_dict(_cls: &PyType, _py: Python) -> PyResult<Self> {
-        todo!()
+    pub(crate) fn from_dict(cls: &PyType, py: Python, dict: PyObject) -> PyResult<PyYamlConfigDocument> {
+        construct_new_ycd(py, cls, [
+            cls.into_py(py) , dict, py.None(), py.None(), py.None(), py.None()
+        ])
     }
 
     /// Header that YAML-documents must contain.
@@ -131,7 +133,7 @@ impl YamlConfigDocument {
     /// Validates the document against the Schema.
     pub(crate) fn validate(slf: &PyCell<Self>, py: Python) -> PyResult<bool> {
         if slf.borrow().frozen.is_some() {
-            todo!()
+            return Err(exceptions::PyRuntimeError::new_err("Document is already frozen."));
         }
         let self_: PyRef<Self> = slf.borrow();
         let args = PyTuple::new(py, [self_.doc.to_object(py)]);
@@ -150,14 +152,17 @@ impl YamlConfigDocument {
     ///  :returns: self
     pub(crate) fn resolve_and_merge_references(slf: Py<Self>, py: Python, lookup_paths: Vec<String>) -> PyResult<Py<YamlConfigDocument>> {
         if slf.borrow(py).frozen.is_some() {
-            todo!()
+            return Err(exceptions::PyRuntimeError::new_err("Document is already frozen."));
         }
         let slf_clone = slf.clone_ref(py);
 
         if let Ok(cb) = slf.getattr(py, "_initialize_data_before_merge") {
             let mut mref = slf.borrow_mut(py);
             let args = PyTuple::new(py, [take(&mut mref.doc)]);
-            mref.doc = cb.call1(py, args)?.extract(py)?;
+            drop(mref);
+            let tmp = cb.call1(py, args)?.extract(py)?;
+            let mut mref = slf.borrow_mut(py);
+            mref.doc = tmp;
             drop(mref);
         }
 
@@ -166,7 +171,10 @@ impl YamlConfigDocument {
         if let Ok(cb) = slf.getattr(py, "_initialize_data_after_merge") {
             let mut mref = slf.borrow_mut(py);
             let args = PyTuple::new(py, [take(&mut mref.doc).into_py(py)]);
-            mref.doc = cb.call1(py, args)?.extract(py)?;
+            drop(mref);
+            let tmp = cb.call1(py, args)?.extract(py)?;
+            let mut mref = slf.borrow_mut(py);
+            mref.doc = tmp;
             drop(mref);
         }
 
@@ -187,13 +195,16 @@ impl YamlConfigDocument {
     ///  Changes this document in place.
     fn process_vars(slf: Py<Self>, py: Python) -> PyResult<Py<Self>> {
         if slf.borrow(py).frozen.is_some() {
-            todo!()
+            return Err(exceptions::PyRuntimeError::new_err("Document is already frozen."));
         }
         process_variables(py, slf.clone_ref(py).into())?;
         if let Ok(cb) = slf.getattr(py, "_initialize_data_after_variables") {
             let mut mref = slf.borrow_mut(py);
             let args = PyTuple::new(py, take(&mut mref.doc));
-            mref.doc = cb.call1(py, args)?.extract(py)?;
+            drop(mref);
+            let tmp = cb.call1(py, args)?.extract(py)?;
+            let mut mref = slf.borrow_mut(py);
+            mref.doc = tmp;
         }
         Ok(slf)
     }
@@ -229,11 +240,9 @@ impl YamlConfigDocument {
     /// Copies the internal data to make it accessible via self.doc and self[...].
     /// You can not call resolve_and_merge_references, process_vars or validate on a frozen document.
     /// If you (still) need to use these, consider using the 'internal_*' methods instead.
-    fn freeze(&self) -> PyResult<()> {
-        todo!()
-        /*if let Ok(cb) = slf.getattr(py, "_initialize_data_after_freeze") {
-            cb.call0(py, args)?;
-        }*/
+    fn freeze(&mut self, py: Python) -> PyResult<()> {
+        self.frozen = Some(self.doc.to_object(py));
+        Ok(())
     }
 
     #[getter]
@@ -318,9 +327,14 @@ impl YamlConfigDocument {
     /// Otherwise sets it it in the frozen `self.doc`.
     fn internal_set(slf: &PyCell<Self>, key: String, val: YcdValueType) -> PyResult<()> {
         match &slf.borrow().frozen {
-            None => {slf.borrow_mut().doc.insert(key, val);},
-            Some(f) => f.extract::<&PyDict>(slf.py())?.set_item(key, val.to_object(slf.py()))?
+            None => {/*Drop borrow*/},
+            Some(f) => {
+                f.extract::<&PyDict>(slf.py())?.set_item(key, val.to_object(slf.py()))?;
+                return Ok(());
+            }
         }
+        // None:
+        slf.borrow_mut().doc.insert(key, val);
         Ok(())
     }
 
@@ -337,9 +351,14 @@ impl YamlConfigDocument {
     /// Otherwise deletes a value from `self.doc` at `key`.
     fn internal_delete(slf: &PyCell<Self>, key: &str) -> PyResult<()> {
         match &slf.borrow().frozen {
-            None => {slf.borrow_mut().doc.remove(key);},
-            Some(f) => {f.extract::<&PyDict>(slf.py())?.del_item(key).ok();}
+            None => {/* Drop borrow*/},
+            Some(f) => {
+                f.extract::<&PyDict>(slf.py())?.del_item(key).ok();
+                return Ok(());
+            }
         };
+        // None:
+        slf.borrow_mut().doc.remove(key);
         Ok(())
     }
 
@@ -401,9 +420,8 @@ struct InternalAccessContext(PyYamlConfigDocument);
 
 #[pymethods]
 impl InternalAccessContext {
-    fn __enter__(&mut self, py: Python) -> PyResult<PyObject> {
-        self.0.borrow(py).freeze()?;
-        todo!()
+    fn __enter__(&mut self, py: Python) -> PyResult<()> {
+        self.0.borrow_mut(py).freeze(py)
     }
 
     fn __exit__(

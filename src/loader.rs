@@ -27,7 +27,6 @@ pub(crate) fn load_multiple_yml(py: Python, doc_type: &PyType, args: &PyTuple) -
     for rarg in args {
         match rarg {
             Ok(arg) => {
-                println!("load_multiple_yml: {:?}", arg);
                 let new_doc = YamlConfigDocument::from_yaml(doc_type, py, arg.clone())?;
                 doc = Some(match doc {
                     None => new_doc,
