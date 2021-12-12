@@ -12,7 +12,7 @@ use crate::variables::{process_variables, process_variables_for};
 /// A document represented by a dictionary, that can be validated,
 ///  can contain references to other (sub-)documents, which can be resolved,
 ///  and variables that can be parsed.
-#[pyclass(module = "main", subclass)]
+#[pyclass(module = "_main", subclass)]
 #[derive(Clone, Debug)]
 pub(crate) struct YamlConfigDocument {
     pub(crate) doc: YcdDict,
@@ -130,6 +130,9 @@ impl YamlConfigDocument {
 
     /// Validates the document against the Schema.
     pub(crate) fn validate(slf: &PyCell<Self>, py: Python) -> PyResult<bool> {
+        if slf.borrow().frozen.is_some() {
+            todo!()
+        }
         let self_: PyRef<Self> = slf.borrow();
         let args = PyTuple::new(py, [self_.doc.to_object(py)]);
         slf.getattr("schema")?.call0()?.getattr("validate")?.call1(args)?;
@@ -146,6 +149,9 @@ impl YamlConfigDocument {
     ///
     ///  :returns: self
     pub(crate) fn resolve_and_merge_references(slf: Py<Self>, py: Python, lookup_paths: Vec<String>) -> PyResult<Py<YamlConfigDocument>> {
+        if slf.borrow(py).frozen.is_some() {
+            todo!()
+        }
         let slf_clone = slf.clone_ref(py);
 
         if let Ok(cb) = slf.getattr(py, "_initialize_data_before_merge") {
@@ -180,6 +186,9 @@ impl YamlConfigDocument {
     ///  All references must be resolved beforehand to work correctly (resolve_and_merge_references).
     ///  Changes this document in place.
     fn process_vars(slf: Py<Self>, py: Python) -> PyResult<Py<Self>> {
+        if slf.borrow(py).frozen.is_some() {
+            todo!()
+        }
         process_variables(py, slf.clone_ref(py).into())?;
         if let Ok(cb) = slf.getattr(py, "_initialize_data_after_variables") {
             let mut mref = slf.borrow_mut(py);
@@ -218,9 +227,8 @@ impl YamlConfigDocument {
     }
 
     /// Copies the internal data to make it accessible via self.doc and self[...].
-    /// Changes made are overwritten when other documents are merged into this or variables are processed
-    /// after freeze() was called, additionally you will need to call freeze again to update
-    /// self.doc and self.[...] then.
+    /// You can not call resolve_and_merge_references, process_vars or validate on a frozen document.
+    /// If you (still) need to use these, consider using the 'internal_*' methods instead.
     fn freeze(&self) -> PyResult<()> {
         todo!()
         /*if let Ok(cb) = slf.getattr(py, "_initialize_data_after_freeze") {
@@ -296,6 +304,50 @@ impl YamlConfigDocument {
         dict.insert(slf.getattr(py, "header")?.call0(py)?.extract(py)?, Dict(self_.doc.clone()));
         recursive_docs_to_dicts(Dict(dict), py)
     }
+
+    /// If not frozen: Returns a COPY of the key at the specified location
+    /// Otherwise returns it from the frozen `self.doc`, it may or may not be a copy.
+    fn internal_get(slf: &PyCell<Self>, key: &str) -> PyResult<PyObject> {
+        Ok(match &slf.borrow().frozen {
+            None => slf.borrow().doc.get(key).to_object(slf.py()),
+            Some(f) => f.extract::<&PyDict>(slf.py())?.get_item(key).to_object(slf.py())
+        })
+    }
+
+    /// If not frozen: Sets the value at the specified location in the internal document.
+    /// Otherwise sets it it in the frozen `self.doc`.
+    fn internal_set(slf: &PyCell<Self>, key: String, val: YcdValueType) -> PyResult<()> {
+        match &slf.borrow().frozen {
+            None => {slf.borrow_mut().doc.insert(key, val);},
+            Some(f) => f.extract::<&PyDict>(slf.py())?.set_item(key, val.to_object(slf.py()))?
+        }
+        Ok(())
+    }
+
+    /// If not frozen: Returns whether the internal document contains `key`.
+    /// Otherwise returns whether the frozen `self.doc` contains `key`.
+    fn internal_contains(slf: &PyCell<Self>, key: &str) -> PyResult<bool> {
+        Ok(match &slf.borrow().frozen {
+            None => slf.borrow().doc.contains_key(key),
+            Some(f) => f.extract::<&PyDict>(slf.py())?.contains(key)?
+        })
+    }
+
+    /// If not frozen: Deletes a value from the internal document at `key`.
+    /// Otherwise deletes a value from `self.doc` at `key`.
+    fn internal_delete(slf: &PyCell<Self>, key: &str) -> PyResult<()> {
+        match &slf.borrow().frozen {
+            None => {slf.borrow_mut().doc.remove(key);},
+            Some(f) => {f.extract::<&PyDict>(slf.py())?.del_item(key).ok();}
+        };
+        Ok(())
+    }
+
+    /// Freezes the document temporarily (as long as the context is active, and synchronizes all
+    /// data back into the internal document afterwards. Document must not already be frozen.
+    fn internal_access(slf: Py<Self>) -> InternalAccessContext {
+        InternalAccessContext(slf.into())
+    }
 }
 
 impl YamlConfigDocument {
@@ -344,7 +396,36 @@ impl PyIterProtocol for YamlConfigDocument {
     }
 }
 
-#[pyclass(module = "main")]
+#[pyclass(module = "_main")]
+struct InternalAccessContext(PyYamlConfigDocument);
+
+#[pymethods]
+impl InternalAccessContext {
+    fn __enter__(&mut self, py: Python) -> PyResult<PyObject> {
+        self.0.borrow(py).freeze()?;
+        todo!()
+    }
+
+    fn __exit__(
+        &mut self,
+        py: Python,
+        _exc_type: Option<PyObject>,
+        _exc_value: Option<PyObject>,
+        _traceback: Option<PyObject>
+    ) -> PyResult<()> {
+        let mut borrow = self.0.borrow_mut(py);
+        match &borrow.frozen {
+            None => {},
+            Some(f) => {
+                borrow.doc = f.extract(py)?;
+                borrow.frozen = None;
+            }
+        }
+        Ok(())
+    }
+}
+
+#[pyclass(module = "_main")]
 #[derive(Clone)]
 pub(crate) struct DocReference {
     referenced_type: Py<PyType> // Type[YamlConfigDocument]
@@ -392,7 +473,7 @@ impl DocReference {
             if data_doc.borrow().doc.contains_key(REF) {
                 return Ok(true);
             }
-            return YamlConfigDocument::validate(data_doc, py);
+            return data_doc.getattr("validate")?.call0()?.extract();
         }
         Err(SchemaError::new_err(format!(
             "Expected an instance of {:?} while validating, got {:?}: {:?}",
