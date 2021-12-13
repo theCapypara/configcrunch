@@ -24,9 +24,6 @@ impl PyYamlConfigDocument {
     pub(crate) fn clone_ref(&self, py: Python) -> PyYamlConfigDocument {
         self.0.clone_ref(py).into()
     }
-    pub fn as_ref(&'py self, py: Python<'py>) -> &'py PyCell<YamlConfigDocument> {
-        self.0.as_ref(py)
-    }
     pub(crate) fn getattr(&self, py: Python, attr: &str) -> PyResult<PyObject> {
         self.0.getattr(py, attr)
     }

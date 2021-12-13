@@ -63,7 +63,7 @@ impl DocumentTraverser {
     fn process_variables_current_doc(py: Python, input_node: &mut YcdValueType, document: PyYamlConfigDocument) -> PyResult<bool> {
         match input_node {
             YString(in_str) => {
-                match apply_variable_resolution(py, in_str, document.clone_ref(py), TemplateRenderer::new(document.clone_ref(py).as_ref(py))?) {
+                match apply_variable_resolution(py, in_str, TemplateRenderer::new(document.clone_ref(py))?) {
                     Ok(opt_new_value) => {
                         if let Some(new_value) = opt_new_value {
                             let mut changed = false;
@@ -95,9 +95,9 @@ impl DocumentTraverser {
 
 /// Process variables for a document in a single string
 fn apply_variable_resolution<'env>(
-    py: Python, input_str: &'env str, ycd: PyYamlConfigDocument, template_renderer: TemplateRenderer<'env>
+    py: Python, input_str: &'env str, template_renderer: TemplateRenderer<'env>
 ) -> PyResult<Option<YcdValueType>> {
-    match template_renderer.render(py, &ycd.borrow(py).bound_helpers, input_str) {
+    match template_renderer.render(py, input_str) {
         Ok(opt_result) => Ok(opt_result.map(|result| if input_str != result {
             // Allow parsed ints to be read as such
             match result.strip_prefix(FORCE_STRING) {
@@ -133,9 +133,9 @@ pub(crate) fn process_variables(py: Python, ycd: PyYamlConfigDocument) -> PyResu
 
 #[inline]
 pub(crate) fn process_variables_for(py: Python, ycd: PyYamlConfigDocument, target: &str, additional_helpers: Vec<PyObject>) -> PyResult<YcdValueType> {
-    let mut renderer: TemplateRenderer = TemplateRenderer::new(ycd.as_ref(py))?;
+    let mut renderer: TemplateRenderer = TemplateRenderer::new(ycd.clone_ref(py))?;
     renderer.add_helpers(py, additional_helpers);
-    Ok(match apply_variable_resolution(py, target, ycd.clone_ref(py), renderer)? {
+    Ok(match apply_variable_resolution(py, target, renderer)? {
         None => YString(target.to_string()),
         Some(s) => s
     })

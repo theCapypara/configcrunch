@@ -1,0 +1,3 @@
+base:
+  $ref: /merge_subdoc
+  level_direct: $remove

@@ -79,6 +79,7 @@ class Level(YamlConfigDocument):
         return Schema(
             {
                 Optional('$ref'): str,  # reference to other Level documents
+                Optional('$name'): str,  # key if in a dict
                 'name': str,
                 Optional('base_ref'): DocReference(Base),
                 Optional('more'): lambda any: True
@@ -95,3 +96,6 @@ class Level(YamlConfigDocument):
     def level_helper(self):
         return "level"
 
+    @variable_helper
+    def level_helper_taking_param(self, param: str):
+        return f"level_param: {param}"

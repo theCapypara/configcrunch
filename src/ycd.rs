@@ -240,8 +240,13 @@ impl YamlConfigDocument {
     /// Copies the internal data to make it accessible via self.doc and self[...].
     /// You can not call resolve_and_merge_references, process_vars or validate on a frozen document.
     /// If you (still) need to use these, consider using the 'internal_*' methods instead.
-    fn freeze(&mut self, py: Python) -> PyResult<()> {
-        self.frozen = Some(self.doc.to_object(py));
+    fn freeze(slf: Py<YamlConfigDocument>, py: Python) -> PyResult<()> {
+        recursive_ycd_do(
+            slf.into(), |ycd| {
+                let mut borrow = ycd.borrow_mut(py);
+                borrow.frozen = Some(borrow.doc.to_object(py));
+            }, py
+        );
         Ok(())
     }
 
@@ -249,7 +254,10 @@ impl YamlConfigDocument {
     /// Representation of the internal data. Object needs to be frozen first, otherwise this will raise a TypeError.
     fn doc(&self, py: Python) -> PyResult<PyObject> {
         match &self.frozen {
-            None => Err(exceptions::PyAttributeError::new_err("Document needs to be frozen first.")),
+            None => {
+                //debug_assert!(false, "Document needs to be frozen first.");
+                Err(exceptions::PyAttributeError::new_err("Document needs to be frozen first."))
+            },
             Some(v) => Ok(v.clone_ref(py))
         }
     }
@@ -421,7 +429,7 @@ struct InternalAccessContext(PyYamlConfigDocument);
 #[pymethods]
 impl InternalAccessContext {
     fn __enter__(&mut self, py: Python) -> PyResult<()> {
-        self.0.borrow_mut(py).freeze(py)
+        YamlConfigDocument::freeze(self.0.clone_ref(py).into(), py)
     }
 
     fn __exit__(
@@ -431,14 +439,19 @@ impl InternalAccessContext {
         _exc_value: Option<PyObject>,
         _traceback: Option<PyObject>
     ) -> PyResult<()> {
-        let mut borrow = self.0.borrow_mut(py);
-        match &borrow.frozen {
-            None => {},
-            Some(f) => {
-                borrow.doc = f.extract(py)?;
-                borrow.frozen = None;
-            }
-        }
+
+        recursive_ycd_do(
+            self.0.clone_ref(py), |ycd| {
+                let mut borrow = ycd.borrow_mut(py);
+                match &borrow.frozen {
+                    None => {},
+                    Some(f) => {
+                        borrow.doc = f.extract(py).unwrap();
+                        borrow.frozen = None;
+                    }
+                }
+            }, py
+        );
         Ok(())
     }
 }
@@ -499,5 +512,27 @@ impl DocReference {
             data.getattr("__class__")?.getattr("__name__")?,
             data
         )))
+    }
+}
+
+fn recursive_ycd_do<F>(ycd: PyYamlConfigDocument, cb: F, py: Python)
+where
+    F: Fn(PyYamlConfigDocument) + Copy
+{
+    _recursive_ycd_do_impl(&YcdValueType::Ycd(ycd), cb, py)
+}
+
+fn _recursive_ycd_do_impl<F>(obj: &YcdValueType, cb: F, py: Python)
+where
+    F: Fn(PyYamlConfigDocument) + Copy
+{
+    match obj {
+        YcdValueType::Ycd(v) => {
+            cb(v.clone_ref(py));
+            v.borrow(py).doc.values().for_each(|vv| _recursive_ycd_do_impl(vv, cb, py))
+        }
+        YcdValueType::Dict(v) => {v.values().for_each(|vv| _recursive_ycd_do_impl(vv, cb, py))},
+        YcdValueType::List(v) => {v.iter().for_each(|vv| _recursive_ycd_do_impl(vv, cb, py))},
+        _ => {}
     }
 }

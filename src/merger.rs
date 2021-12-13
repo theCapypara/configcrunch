@@ -14,7 +14,7 @@ use crate::{construct_new_ycd, InvalidRemoveError, load_referenced_document, REF
 pub(crate) struct SubdocSpec(String, Py<PyType>); // path spec, type
 
 impl SubdocSpec {
-    pub(crate) fn replace_at<C>(&self, from: &mut YcdDict, cb: C) -> PyResult<()> where C: Fn(&mut YcdValueType) -> PyResult<YcdValueType> {
+    pub(crate) fn replace_at<C>(&self, from: &mut YcdDict, cb: C, py: Python) -> PyResult<()> where C: Fn(&mut YcdValueType) -> PyResult<YcdValueType> {
         let multiple = self.0.ends_with("[]");
         let path: Split<char>;
         let s;
@@ -24,12 +24,12 @@ impl SubdocSpec {
         } else {
             path = self.0.split('/');
         }
-        Self::replace_at_impl(path.peekable(), from, cb, multiple)?;
+        Self::replace_at_impl(path.peekable(), from, cb, multiple, py)?;
         Ok(())
     }
     fn replace_at_impl<'s, C, P> (
         mut path: Peekable<P>, mut from: &mut YcdDict,
-        cb: C, multiple: bool
+        cb: C, multiple: bool, py: Python
     ) -> PyResult<()>
         where
             C: Fn(&mut YcdValueType) -> PyResult<YcdValueType>,
@@ -46,7 +46,16 @@ impl SubdocSpec {
                                 Dict(dobj) => *dobj = dobj
                                         .iter_mut()
                                         .map(|(k,v)| match cb(v) {
-                                            Ok(nv) => Ok((k.clone(), nv)),
+                                            Ok(nv) => Ok((k.clone(), {
+                                                match nv {
+                                                    Ycd(nvycd) => {
+                                                        // Insert a $name system key to all documents in a dict, which contain the dict key.
+                                                        nvycd.borrow_mut(py).doc.insert("$name".to_string(), YString(k.to_string()));
+                                                        Ycd(nvycd)
+                                                    }
+                                                    _ => nv
+                                                }
+                                            })),
                                             Err(e) => Err(e)
                                         })
                                         .collect::<PyResult<YcdDict>>()?,
@@ -88,9 +97,9 @@ impl SubdocSpec {
 }
 
 #[pyfunction(name="_test__subdoc_specs")]
-pub(crate) fn test_subdoc_specs(path: String, typ: Py<PyType>, mut input: YcdDict, replace_with: YcdValueType) -> PyResult<(YcdDict, Py<PyType>)> {
+pub(crate) fn test_subdoc_specs(py: Python, path: String, typ: Py<PyType>, mut input: YcdDict, replace_with: YcdValueType) -> PyResult<(YcdDict, Py<PyType>)> {
     let spec = SubdocSpec(path, typ);
-    spec.replace_at(&mut input, |_| Ok(replace_with.clone()))?;
+    spec.replace_at(&mut input, |_| Ok(replace_with.clone()), py)?;
     Ok((input, spec.1))
 }
 
@@ -252,7 +261,7 @@ pub(crate) fn merge_documents(py: Python, target: PyYamlConfigDocument, source: 
     target_doc.already_loaded_docs.as_mut().unwrap().extend(source_doc.already_loaded_docs.as_ref().unwrap().iter().cloned());
     let targets_before = target_doc.absolute_paths.clone();
     target_doc.absolute_paths.extend(source_doc.absolute_paths.iter()
-        .filter(|&v| targets_before.contains(v))
+        .filter(|&v| !targets_before.contains(v))
         .map(|v| v.to_string())
     );
     Ok(targetrc)
@@ -336,7 +345,8 @@ pub(crate) fn load_subdocuments(py: Python, doc: PyYamlConfigDocument, specs: Ve
     for spec in specs {
         spec.replace_at(
             &mut doc_borrow.doc,
-            |target| load_subdocument(py, target, args.clone(), spec.1.clone_ref(py), lookup_paths)
+            |target| load_subdocument(py, target, args.clone(), spec.1.clone_ref(py), lookup_paths),
+            py
         )?;
     };
     Ok(())

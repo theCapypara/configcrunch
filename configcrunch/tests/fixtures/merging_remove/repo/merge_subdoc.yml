@@ -1,0 +1,42 @@
+base:
+    str_field: merge-success
+    int_field: 1234
+    level_dict:
+        invalid_ref:
+          name: Invalid
+          $ref: /i-dont-exist
+          more:
+            list:
+              - entry1
+              - entry2
+              - entry3
+              - test-$remove::entry2
+              - entry4
+        abc:
+          name: abc
+          base_ref:
+            more:
+              str1: value1
+            level_direct:
+                name: level2
+                more: no
+          more:
+            twelve: eleven
+            a:
+            - B
+            - C
+            - D
+        remove_me:
+          $ref: /level.yml
+    level_array:
+        - name: array1
+        - name: array2
+        - name: array3
+        - name: array4
+        - name: array5
+        - name: array6
+          more:
+            this_is: simple
+    more:
+      - 1
+      - 2

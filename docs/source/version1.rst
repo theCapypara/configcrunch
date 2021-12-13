@@ -2,6 +2,7 @@ Migrating to Version 1.x
 ------------------------
 
 - __init__ no longer called / _init_before* re-added
+- $name
 - removed & moved functions
 - new subdocuments logic
 - minijinja

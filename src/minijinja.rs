@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
 use minijinja::{Environment, Error, ErrorKind, State};
 use minijinja::value::{Object, Primitive, Value};
-use pyo3::{Py, PyCell, PyObject, PyResult, Python, ToPyObject};
+use pyo3::{PyObject, PyResult, Python, ToPyObject};
 use pyo3::types::PyTuple;
 use crate::conv::{PyYamlConfigDocument, SimpleYcdValueType, YcdValueType, YHashMap};
 use crate::{FORCE_STRING, YamlConfigDocument};
@@ -27,12 +27,9 @@ impl<'env> TemplateRenderer<'env> {
     const STR_FILTER: &'static str = "str";
     const TPL_NAME: &'static str = "tpl";
 
-    pub(crate) fn new(dref: &'env PyCell<YamlConfigDocument>) -> PyResult<Self> {
-        if dref.borrow().bound_helpers.is_empty() {
-            YamlConfigDocument::collect_bound_variable_helpers(dref, dref.py())?;
-        }
+    pub(crate) fn new(document: PyYamlConfigDocument) -> PyResult<Self> {
         let mut slf = Self {
-            env: Environment::new(), document: Py::from(dref).into(), globals: HashMap::new()
+            env: Environment::new(), document, globals: HashMap::new()
         };
 
         slf.env.add_filter(Self::STR_FILTER, str_filter);
@@ -40,13 +37,10 @@ impl<'env> TemplateRenderer<'env> {
         Ok(slf)
     }
 
-    pub(crate) fn render(mut self, py: Python<'env>, helpers: &'env HashMap<String, PyObject>, input: &'env str) -> Result<Option<String>, Error> {
+    pub(crate) fn render(mut self, py: Python<'env>, input: &'env str) -> Result<Option<String>, Error> {
         if !input.contains('{') {
             // Shortcut if it doesn't contain any variables or control structures
             return Ok(None)
-        }
-        for (name, helper) in helpers {
-            self.env.add_function(name, TemplateRenderer::create_helper_fn(helper.clone_ref(py)))
         }
         self.env.add_template(Self::TPL_NAME, input)?;
         let result = self.env
@@ -174,11 +168,35 @@ impl ToPyObject for WValue {
     }
 }
 
+#[derive(Debug)]
+struct VariableHelper(PyObject);
+
+impl Display for VariableHelper {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
+    }
+}
+
+impl Object for VariableHelper {
+    fn call(&self, state: &State, args: Vec<Value>) -> Result<Value, Error> {
+        Python::with_gil(|py| {
+            TemplateRenderer::create_helper_fn(self.0.clone_ref(py))(state, args)
+        })
+    }
+}
+
 impl Object for PyYamlConfigDocument {
     fn get_attr(&self, name: &str) -> Option<Value> {
         Python::with_gil(|py| {
-            let bow = self.0.borrow(py);
-            bow.doc.get(name).map(|x| x.into())
+            let mut bow = self.0.borrow(py);
+            bow.doc.get(name).map(|x| x.into()).or_else(|| {
+                if bow.bound_helpers.is_empty() {
+                    drop(bow);
+                    YamlConfigDocument::collect_bound_variable_helpers(self.0.clone_ref(py).as_ref(py), py).ok();
+                    bow = self.0.borrow(py);
+                }
+                bow.bound_helpers.get(name).map(|x| Value::from_object(VariableHelper(x.clone_ref(py))))
+            })
         })
     }
 
