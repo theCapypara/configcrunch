@@ -8,17 +8,32 @@ class InternalTest(ConfigcrunchTestCase):
     def fixture_name(cls):
         return 'internal'
 
-    def test_internal_get(self):
+    def test_internal_get_before_freeze(self):
         self.fail("todo")
 
-    def test_internal_set(self):
+    def test_internal_set_before_freeze(self):
         self.fail("todo")
 
-    def test_internal_contains(self):
+    def test_internal_contains_before_freeze(self):
         self.fail("todo")
 
-    def test_internal_delete(self):
+    def test_internal_delete_before_freeze(self):
         self.fail("todo")
 
-    def test_internal_access(self):
+    def test_internal_access_before_freeze(self):
+        self.fail("todo")
+
+    def test_internal_get_after_freeze(self):
+        self.fail("todo")
+
+    def test_internal_set_after_freeze(self):
+        self.fail("todo")
+
+    def test_internal_contains_after_freeze(self):
+        self.fail("todo")
+
+    def test_internal_delete_after_freeze(self):
+        self.fail("todo")
+
+    def test_internal_access_after_freeze(self):
         self.fail("todo")

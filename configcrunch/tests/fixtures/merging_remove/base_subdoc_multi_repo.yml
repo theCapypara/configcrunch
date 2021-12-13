@@ -1,3 +1,5 @@
 base:
+  level_dict:
+    c:
+      name: c
   $ref: /merge_subdoc
-  level_direct: $remove

@@ -3,6 +3,7 @@ use std::env::current_dir;
 use std::fs;
 use std::fs::File;
 use std::path::PathBuf;
+use path_absolutize::Absolutize;
 use pyo3::exceptions;
 pub(crate) use pyo3::prelude::*;
 use pyo3::types::{PyTuple, PyType};
@@ -98,20 +99,24 @@ pub(crate) fn absolute_paths(ref_path_in_repo: &str, lookup_paths: &[String]) ->
 /// Load the actual dictionaries at path by checking if files ending in .yml/.yaml exist.
 pub(crate) fn load_dicts(path: &str) -> PyResult<Vec<YcdDict>> {
     let mut doc_dicts: Vec<YcdDict> = Vec::with_capacity(2);
-    let p_yml = format!("{}.yml", path);
-    let p_yaml = format!("{}.yaml", path);
-    if let Ok(e) = fs::try_exists(&p_yml) {
-        if e {
-            doc_dicts.push(load_yaml_file(&p_yml)?);
-        }
+    if let Some(f) = load_dicts_try_single_path(PathBuf::from(format!("{}.yml", path)))? {
+        doc_dicts.push(f);
     }
-    if let Ok(e) = fs::try_exists(&p_yaml) {
-        if e {
-            doc_dicts.push(load_yaml_file(&p_yaml)?);
-        }
+    if let Some(f) = load_dicts_try_single_path(PathBuf::from(format!("{}.yaml", path)))? {
+        doc_dicts.push(f);
     }
-
     Ok(doc_dicts)
+}
+
+fn load_dicts_try_single_path(path: PathBuf) -> PyResult<Option<YcdDict>> {
+    if let Ok(c) = path.absolutize_virtually("/") {
+        if let Ok(e) = fs::try_exists(&c) {
+            if e {
+                return Ok(Some(load_yaml_file(c.to_str().unwrap())?))
+            }
+        }
+    }
+    Ok(None)
 }
 
 pub(crate) fn load_yaml_file(path_to_yaml: &str) -> PyResult<YcdDict> {
@@ -137,11 +142,14 @@ pub(crate) fn load_yaml_file(path_to_yaml: &str) -> PyResult<YcdDict> {
 pub(crate) fn dict_to_doc_cls(
     py: Python, doc_dict: YcdDict, doc_cls: &PyType, absolute_path: &str, ref_path_in_repo: &str, parent: PyYamlConfigDocument,
 ) -> PyResult<PyYamlConfigDocument> {
+    let buf = PathBuf::from(absolute_path);
+    let vrt = buf.absolutize_virtually("/")?;
+    let absolute_path: String = vrt.to_str().as_ref().unwrap().to_string();
     let parent_ref = parent.borrow(py);
     let header = doc_cls.getattr("header")?.call0()?;
     let header: &str = header.extract()?;
     if doc_dict.contains_key(header) {
-        let new_abs_paths: Vec<String> = [absolute_path.to_string()]
+        let new_abs_paths: Vec<String> = [absolute_path]
             .into_iter().chain(parent_ref.absolute_paths.clone().into_iter())
             .collect();
         return construct_new_ycd(py, doc_cls, [

@@ -13,6 +13,20 @@ class MergingRemove(ConfigcrunchTestCase):
             ['repo']
         )
 
+    def test_remove_subdoc(self):
+        self.assertDocEqualMerging(
+            'expected_subdoc.yml',
+            'base_subdoc.yml',
+            ['repo']
+        )
+
+    def test_remove_subdoc_multi_repo(self):
+        self.assertDocEqualMerging(
+            'expected_subdoc_multi_repo.yml',
+            'base_subdoc_multi_repo.yml',
+            ['repo', 'repo2']
+        )
+
     def test_multi_level_list(self):
         self.assertDocEqualMerging(
             'multi_list_merge_expected.yml',

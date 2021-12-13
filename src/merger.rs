@@ -183,21 +183,7 @@ fn merge_documents_recursion(py: Python, target_node: YcdValueType, source_node:
             if let Dict(mut t) = target_node {
                 if let Dict(s) = source_node {
                     // IS DICT IN SOURCE AND TARGET
-                    // Edge case: Normally we will remove all $remove markers after iterating over everything
-                    //            to make sure everything is removed correctly. But if the key is $ref, we must remove
-                    //            now, to make sure that the referenced document is not even loaded.
-                    let mut to_remove: Vec<String> = Vec::with_capacity(t.len());
                     t.extend(s.into_iter()
-                            .filter(|(k, v)| match v {
-                                YString(v) => {
-                                    let rem = k == REF && v == REMOVE;
-                                    if rem {
-                                       to_remove.push(k.clone());
-                                    }
-                                    !rem
-                                },
-                                _ => true
-                            })
                             .map(|(k, v)| {
                                 if t.contains_key(&k) {
                                     match merge_documents_recursion(py, t.get(&k).unwrap().clone(), v) {
@@ -209,11 +195,7 @@ fn merge_documents_recursion(py: Python, target_node: YcdValueType, source_node:
                                 }
                             })
                             .collect::<PyResult<YcdDict>>()?);
-                    return Ok(Dict(if !to_remove.is_empty() {
-                        t.into_iter().filter(|(k, _)| !to_remove.contains(k)).collect()
-                    } else {
-                        t
-                    }));
+                    return Ok(Dict(t));
                 };
                 panic!(); // This is impossible.
             }
@@ -276,39 +258,46 @@ pub(crate) fn merge_documents(py: Python, target: PyYamlConfigDocument, source: 
 pub(crate) fn resolve_and_merge(py: Python, pydoc: PyYamlConfigDocument, lookup_paths: &[String]) -> PyResult<PyYamlConfigDocument> {
     let mut pydocrc = pydoc.clone_ref(py);
     let doc: PyRef<YamlConfigDocument> = pydoc.borrow(py);
-    if doc.doc.contains_key(REF) {
-        drop(doc);
-        // Resolve references
-        let mut prev_referenced_doc: Option<PyYamlConfigDocument> = None;
-        for mut referenced_doc in load_referenced_document(py, pydocrc.clone_ref(py), lookup_paths)? {
-            if let Some(pd) = prev_referenced_doc {
-                // Merge referenced docs
-                referenced_doc = merge_documents(py, referenced_doc.clone_ref(py), pd)?;
-            }
-            prev_referenced_doc = Some(referenced_doc);
-        }
-        if prev_referenced_doc.is_none() {
-            let doc: PyRef<YamlConfigDocument> = pydoc.borrow(py);
-            return if doc.absolute_paths.is_empty() {
-                Err(ReferencedDocumentNotFound::new_err(format!(
-                    "Referenced document {} not found. Requested by a document at {}",
-                    doc.doc.get(REF).unwrap(), doc.absolute_paths[0]
-                )))
-            } else {
-                Err(ReferencedDocumentNotFound::new_err(format!(
-                    "Referenced document {} not found.",
-                    doc.doc.get(REF).unwrap()
-                )))
+    match doc.doc.get(REF) {
+        Some(YString(x)) => {
+            if x == REMOVE {
+                return Ok(pydocrc);
             }
         }
-        // Resolve entire referenced docs
-        let mut prev_referenced_doc = prev_referenced_doc.unwrap();
-        prev_referenced_doc = resolve_and_merge(py, prev_referenced_doc, lookup_paths)?;
-        // Merge content of current doc into referenced doc (and execute $remove's on the way)
-        pydocrc = merge_documents(py, pydocrc, prev_referenced_doc)?;
-        // Remove $ref entry
-        pydocrc.borrow_mut(py).doc.remove(REF);
+        Some(_) => {}
+        None => return Ok(pydocrc)
+    };
+    drop(doc);
+    // Resolve references
+    let mut prev_referenced_doc: Option<PyYamlConfigDocument> = None;
+    for mut referenced_doc in load_referenced_document(py, pydocrc.clone_ref(py), lookup_paths)? {
+        if let Some(pd) = prev_referenced_doc {
+            // Merge referenced docs
+            referenced_doc = merge_documents(py, referenced_doc.clone_ref(py), pd)?;
+        }
+        prev_referenced_doc = Some(referenced_doc);
     }
+    if prev_referenced_doc.is_none() {
+        let doc: PyRef<YamlConfigDocument> = pydoc.borrow(py);
+        return if doc.absolute_paths.is_empty() {
+            Err(ReferencedDocumentNotFound::new_err(format!(
+                "Referenced document {} not found. Requested by a document at {}",
+                doc.doc.get(REF).unwrap(), doc.absolute_paths[0]
+            )))
+        } else {
+            Err(ReferencedDocumentNotFound::new_err(format!(
+                "Referenced document {} not found.",
+                doc.doc.get(REF).unwrap()
+            )))
+        }
+    }
+    // Resolve entire referenced docs
+    let mut prev_referenced_doc = prev_referenced_doc.unwrap();
+    prev_referenced_doc = resolve_and_merge(py, prev_referenced_doc, lookup_paths)?;
+    // Merge content of current doc into referenced doc (and execute $remove's on the way)
+    pydocrc = merge_documents(py, pydocrc, prev_referenced_doc)?;
+    // Remove $ref entry
+    pydocrc.borrow_mut(py).doc.remove(REF);
     Ok(pydocrc)
 }
 

@@ -1,23 +1,14 @@
 base:
-  $ref: /merge
-  int_field: $remove
+  $ref: /merge_subdoc
   level_dict:
-    invalid_ref:
-      name: Invalid
-      $ref: $remove
-      more:
-        $remove: hello
-        list:
-          - "$remove::entry3"
-          - "$remove::test-$remove::entry2"
-    abc:
-      name: abc
+    a: $remove
+    c:
+      name: c
+    b:
+      name: b
+      base_ref: $remove
+    z:
       base_ref:
-        more: $remove
-        level_direct:
-          more: $remove
-      more: $remove
-    remove_me: $remove
-  level_array: $remove
-  more:
-    - $remove
+        level_dict:
+          one: $remove
+  level_direct: $remove

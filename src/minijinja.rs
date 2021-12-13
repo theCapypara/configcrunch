@@ -4,6 +4,7 @@ use minijinja::{Environment, Error, ErrorKind, State};
 use minijinja::value::{Object, Primitive, Value};
 use pyo3::{PyObject, PyResult, Python, ToPyObject};
 use pyo3::types::PyTuple;
+use serde::{Serialize, Serializer};
 use crate::conv::{PyYamlConfigDocument, SimpleYcdValueType, YcdValueType, YHashMap};
 use crate::{FORCE_STRING, YamlConfigDocument};
 
@@ -219,8 +220,35 @@ impl Object for PyYamlConfigDocument {
     }
 }
 
+struct YHashMapItem<'a>(String, &'a YcdValueType);
+impl Serialize for YHashMapItem<'a> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
+        serializer.serialize_some(&(&self.0, self.1))
+    }
+}
+
 impl Object for YHashMap<String, YcdValueType> {
     fn get_attr(&self, name: &str) -> Option<Value> {
         self.0.get(name).map(|x| x.into())
+    }
+
+    fn call_method(&self, _state: &State, name: &str, _args: Vec<Value>) -> Result<Value, Error> {
+        match name {
+            "items" => Ok(Value::from(
+                self.0.iter()
+                    .map(|(k, v)| Value::from_serializable(&YHashMapItem(k.clone(), v)))
+                    .collect::<Vec<Value>>()
+            )),
+            "values" => Ok(Value::from(
+                self.0.values().collect::<Vec<&YcdValueType>>()
+            )),
+            "keys" => Ok(Value::from(
+                self.0.keys().cloned().collect::<Vec<String>>()
+            )),
+            _ => Err(Error::new(
+                ErrorKind::ImpossibleOperation,
+                format!("object has no method named {}", name),
+            ))
+        }
     }
 }
