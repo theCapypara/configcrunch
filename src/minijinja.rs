@@ -26,6 +26,8 @@ pub(crate) struct TemplateRenderer<'env> {
 
 impl<'env> TemplateRenderer<'env> {
     const STR_FILTER: &'static str = "str";
+    const SUBSTR_START_FILTER: &'static str = "substr_start";
+    const STARTSWITH_FILTER: &'static str = "startswith";
     const TPL_NAME: &'static str = "tpl";
 
     pub(crate) fn new(document: PyYamlConfigDocument) -> PyResult<Self> {
@@ -34,6 +36,8 @@ impl<'env> TemplateRenderer<'env> {
         };
 
         slf.env.add_filter(Self::STR_FILTER, str_filter);
+        slf.env.add_filter(Self::STARTSWITH_FILTER, startswith_filter);
+        slf.env.add_filter(Self::SUBSTR_START_FILTER, substr_start_filter);
 
         Ok(slf)
     }
@@ -98,6 +102,14 @@ impl Display for PyYamlConfigDocument {
 
 fn str_filter(_state: &State, value: String) -> Result<String, Error> {
     Ok(Value::from(format!("{}{}", FORCE_STRING, value)).to_string())
+}
+
+fn substr_start_filter(_state: &State, string: String, start: usize) -> Result<String, Error> {
+    Ok(string[start..].to_string())
+}
+
+fn startswith_filter(_state: &State, string: String, start: String) -> Result<bool, Error> {
+    Ok(string.starts_with(&start))
 }
 
 fn convert_pyerr<_T>(in_e: pyo3::PyErr) -> Result<_T, Error> {
