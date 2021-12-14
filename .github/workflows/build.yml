@@ -134,14 +134,14 @@ jobs:
           path: dist/*.whl
   deploy:
     if: startsWith(github.ref, 'refs/tags/')
-    needs: build
+    needs:
+    - build_linux
+    - build_macos_windows
     runs-on: ubuntu-latest
     name: Deploy wheels to PyPI
     steps:
       - name: Download wheels
         uses: actions/download-artifact@v2
-        with:
-          name: wheels
       - name: Set up Python 3.8
         uses: actions/setup-python@v1
         with:
@@ -155,4 +155,4 @@ jobs:
           TWINE_USERNAME: ${{ secrets.TWINE_USR }}
           TWINE_PASSWORD: ${{ secrets.TWINE_PSW }}
         run: |
-          twine upload *.whl
+          twine upload wheels-linux/*manylinux*.whl wheels-windows*/*.whl wheels-macos*/*.whl
