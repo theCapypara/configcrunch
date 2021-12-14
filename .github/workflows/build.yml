@@ -78,6 +78,7 @@ jobs:
         uses: RalfG/python-wheels-manylinux-build@v0.3.4-manylinux2010_x86_64
         with:
           python-versions: 'cp36-cp36m cp37-cp37m cp38-cp38 cp39-cp39 cp310-cp310'
+          pre-build-command: 'source ./build-manylinux.sh'
       - name: Upload wheels
         uses: actions/upload-artifact@v2
         with:
