@@ -245,6 +245,10 @@ impl YamlConfigDocument {
             slf.into(), |ycd| {
                 let mut borrow = ycd.borrow_mut(py);
                 borrow.frozen = Some(borrow.doc.to_object(py));
+                if let Ok(cb) = ycd.getattr(py, "_initialize_data_after_freeze") {
+                    drop(borrow);
+                    cb.call0(py).ok();
+                };
             }, py
         );
         Ok(())
@@ -316,10 +320,19 @@ impl YamlConfigDocument {
     }
 
     fn to_dict(slf: Py<Self>, py: Python) -> PyResult<YcdValueType> {
-        let self_: PyRef<Self> = slf.borrow(py);
-        let mut dict: YcdDict = HashMap::new();
-        dict.insert(slf.getattr(py, "header")?.call0(py)?.extract(py)?, Dict(self_.doc.clone()));
-        recursive_docs_to_dicts(Dict(dict), py)
+        let frozen = &slf.borrow(py).frozen;
+        match frozen {
+            None => {
+                let self_: PyRef<Self> = slf.borrow(py);
+                let mut dict: YcdDict = HashMap::new();
+                dict.insert(slf.getattr(py, "header")?.call0(py)?.extract(py)?, Dict(self_.doc.clone()));
+                recursive_docs_to_dicts(Dict(dict), py)
+            }
+            Some(_) => {
+                // TODO?
+                Err(exceptions::PyValueError::new_err("to_dict() can not be called on frozen documents."))
+            }
+        }
     }
 
     /// If not frozen: Returns a COPY of the key at the specified location
