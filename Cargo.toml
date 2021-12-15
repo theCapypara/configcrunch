@@ -14,5 +14,5 @@ name = "configcrunch"
 pyo3 = { version = "0.15", features = ["extension-module"] }
 serde = { version = "1", features = ["derive"]}
 serde_yaml = "0.8"
-minijinja = { git = "https://github.com/theCapypara/minijinja.git", branch = "configcrunch", features = ["builtin_filters"] }
+minijinja = { git = "https://github.com/theCapypara/minijinja.git", branch = "configcrunch", features = ["memchr"] }
 path-absolutize = "3"
