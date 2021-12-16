@@ -4,10 +4,12 @@ parent:
     this: foo
   map:
     key:
+      $name: key
       this: bar
-    list:
-      - entry1
-      - entry2
-      - entry3
     key2:
+      $name: key2
       this: bar2
+  list:
+    - entry1
+    - entry2
+    - entry3

@@ -10,8 +10,8 @@ use crate::conv::YcdValueType::Dict;
 use crate::variables::{process_variables, process_variables_for};
 
 /// A document represented by a dictionary, that can be validated,
-///  can contain references to other (sub-)documents, which can be resolved,
-///  and variables that can be parsed.
+/// can contain references to other (sub-)documents, which can be resolved,
+/// and variables that can be parsed.
 #[pyclass(module = "_main", subclass)]
 #[derive(Clone, Debug)]
 pub(crate) struct YamlConfigDocument {
@@ -113,6 +113,7 @@ impl YamlConfigDocument {
     }
 
     /// Specifies the subdocuments.
+    ///
     /// A list of tuples, where:
     /// - The first element is the path to the element, with part pieces (nested dicts) seperated by "/".
     ///   If the path ends with [] and at that location is either a list or a dict, then all values will be converted.
@@ -120,6 +121,7 @@ impl YamlConfigDocument {
     /// - The second element is the referenced document type
     ///
     /// Example for tuples for a given dict::
+    ///
     ///     dict = {"a": {"b": ... }, "c": [ ..., ... ], "d": {"1": ..., "2": ...}}
     ///     single = ("a/b": ...)
     ///     on_list = ("a/c[]": ...)
@@ -217,6 +219,10 @@ impl YamlConfigDocument {
         process_variables_for(py, slf.into(), target, additional_helpers)
     }
 
+    /// .. admonition:: Variable Helper
+    ///
+    ///     Can be used inside configuration files.
+    ///
     /// A helper function that can be used by variable-placeholders to the get the parent document (if any is set).
     ///
     ///  Example usage::
@@ -226,10 +232,6 @@ impl YamlConfigDocument {
     ///  Example result::
     ///
     ///      something: 'value of parent field'
-    ///
-    /// .. admonition:: Variable Helper
-    ///
-    ///     Can be used inside configuration files.
     fn parent(slf: PyRef<Self>, py: Python) -> PyResult<PyObject> {
         Ok(match &slf.parent_doc {
             None => slf.into_py(py),
@@ -319,18 +321,19 @@ impl YamlConfigDocument {
         slf.getattr(py, "doc")
     }
 
-    fn to_dict(slf: Py<Self>, py: Python) -> PyResult<YcdValueType> {
+    fn to_dict(slf: Py<Self>, py: Python) -> PyResult<PyObject> {
         let frozen = &slf.borrow(py).frozen;
         match frozen {
             None => {
                 let self_: PyRef<Self> = slf.borrow(py);
                 let mut dict: YcdDict = HashMap::new();
                 dict.insert(slf.getattr(py, "header")?.call0(py)?.extract(py)?, Dict(self_.doc.clone()));
-                recursive_docs_to_dicts(Dict(dict), py)
+                Ok(recursive_docs_to_dicts(Dict(dict), py)?.into_py(py))
             }
             Some(_) => {
-                // TODO?
-                Err(exceptions::PyValueError::new_err("to_dict() can not be called on frozen documents."))
+                // We are doing this from Python code for better readability
+                let args = PyTuple::new(py, [slf.clone_ref(py)]);
+                Ok(py.import("configcrunch._util")?.getattr("frozen_ycd_to_dict")?.call1(args)?.into_py(py))
             }
         }
     }

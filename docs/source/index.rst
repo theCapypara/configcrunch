@@ -11,6 +11,7 @@
    merging
    variables
    helpers
+   accessing_data
    api_docs
    version1
 

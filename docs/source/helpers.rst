@@ -10,6 +10,13 @@ Inside the variable helper method you can access all fields of your document, as
 methods and variable helpers. All documents have a helper method called :func:`~configcrunch.YamlConfigDocument.parent`
 that returns the parent document.
 
+.. testsetup:: main
+
+    # A bit annoying, and might break without the Riptide/Docker setup :(
+    import os
+    if not os.path.exists("./fixtures"):
+        os.chdir("/src/docs/source")
+
 .. testcode:: main
 
     from schema import Schema, SchemaError, Optional
@@ -27,9 +34,16 @@ that returns the parent document.
                 'int': int
             })
 
+        @classmethod
+        def subdocuments(cls):
+            return []
+
         @variable_helper
         def my_helper(self, param):
-            return self['int'] + param
+            # Since variable helpers are called while the document isn't frozen yet,
+            # you need to use the internal_... methods to get data from the document,
+            # see the "Accessing Data" section.
+            return self.internal_get('int') + param
 
 Example usage:
 
@@ -48,5 +62,5 @@ This will result in the following document:
     >>> actual.process_vars()
     Example(...)
     >>> expected = Example.from_yaml("fixtures/expected_results/helpers1.yml")
-    >>> str(actual) == str(expected)
+    >>> actual.to_dict() == expected.to_dict()
     True

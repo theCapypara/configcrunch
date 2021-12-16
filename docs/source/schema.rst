@@ -17,6 +17,13 @@ Let's say we have the following document:
 To add a schema, we define the ``schema`` method of the document class. In this
 example all fields shown are optional, except for ``this``:
 
+.. testsetup:: main
+
+    # A bit annoying, and might break without the Riptide/Docker setup :(
+    import os
+    if not os.path.exists("./fixtures"):
+        os.chdir("/src/docs/source")
+
 .. testcode:: main
 
     from schema import Schema, SchemaError, Optional
@@ -35,6 +42,10 @@ example all fields shown are optional, except for ``this``:
                 Optional('map'): dict,
                 Optional('list'): list
             })
+
+        @classmethod
+        def subdocuments(cls):
+            return []
 
 You can then use the validate method on documents. On valid documents it returns ``True``
 and doesn't raise an error:
@@ -58,4 +69,5 @@ detailing the issue.
     ...   document.validate()
     ... except SchemaError as err:
     ...   print(err)
+    Key 'this' error:
     123 should be instance of 'str'

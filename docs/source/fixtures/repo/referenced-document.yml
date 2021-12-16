@@ -6,7 +6,7 @@ parent:
   map:
     key:
       this: bar
-    list:
-      - entry1
-      - entry2
-      - entry3
+  list:
+    - entry1
+    - entry2
+    - entry3
