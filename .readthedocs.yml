@@ -7,3 +7,8 @@ build:
   tools:
     python: "3.9"
     rust: "1.55"
+
+python:
+  install:
+    - method: pip
+      path: .
