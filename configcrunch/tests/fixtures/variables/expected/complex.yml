@@ -1,16 +1,26 @@
 base:
   level_dict:
     a:
+      $name: a
       name: source
       more:
         a: level
+        brackets_key: brackets_content
     b:
+      $name: b
       name: simple
       more:
         a: SOURCE
+        b_param_top_level: "level_param: sun"
   more:
     source: source
     a: source
+    brackets: brackets_content
     b: simple
     c: level
     d: level
+    e: "level_param: world"
+    e_in_dict:
+      please_work: "does this level_param: world work?"
+      please_work_double_quotes: "does this level_param: househousehouse still work?"
+    e_in_list: ["level_param: world"]

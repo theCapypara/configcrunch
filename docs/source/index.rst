@@ -11,7 +11,9 @@
    merging
    variables
    helpers
+   accessing_data
    api_docs
+   version1
 
 * :ref:`genindex`
 * :ref:`modindex`

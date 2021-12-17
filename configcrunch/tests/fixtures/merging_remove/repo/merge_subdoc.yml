@@ -1,0 +1,19 @@
+base:
+  level_dict:
+    a:
+      name: a
+    b:
+      name: b
+      base_ref:
+        more:
+          base: base
+    z:
+      name: z
+      base_ref:
+        level_dict:
+          one:
+            name: one
+          two:
+            name: two
+  level_direct:
+    name: abc

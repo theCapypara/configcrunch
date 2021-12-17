@@ -1,0 +1,16 @@
+base:
+  level_dict:
+    b:
+      $name: b
+      name: b
+    c:
+      $name: c
+      name: c
+    z:
+      $name: z
+      name: z
+      base_ref:
+        level_dict:
+          two:
+            $name: two
+            name: two

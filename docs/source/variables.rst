@@ -3,6 +3,11 @@ Variables and templating
 
 .. testsetup:: main
 
+    # A bit annoying, and might break without the Riptide/Docker setup :(
+    import os
+    if not os.path.exists("./fixtures"):
+        os.chdir("/src/docs/source")
+
     from schema import Schema, SchemaError, Optional
     from configcrunch import YamlConfigDocument
 
@@ -20,7 +25,11 @@ Variables and templating
                 Optional('list'): list
             })
 
-    from configcrunch import DocReference, load_subdocument, REMOVE
+        @classmethod
+        def subdocuments(cls):
+            return []
+
+    from configcrunch import DocReference
 
     class Parent(YamlConfigDocument):
         @classmethod
@@ -35,22 +44,14 @@ Variables and templating
                 'map': {str: DocReference(Example)}
             })
 
-        def _load_subdocuments(self, lookup_paths):
-            # direct entry processing
-            if self["direct"] != REMOVE:
-                self["direct"] = load_subdocument(self["direct"], self, Example, lookup_paths)
+        @classmethod
+        def subdocuments(cls):
+            return [
+                ("direct", Example),
+                ("map[]", Example)
+            ]
 
-            # map entry processing
-            if self["map"] != REMOVE:
-                for key, doc in self["map"].items():
-                    if doc != REMOVE:
-                        self["map"][key] = load_subdocument(doc, self, Example, lookup_paths)
-
-            return self
-
-Documents can contain template strings based on `Jinja2 <http://jinja.pocoo.org/docs/2.10/>`_.
-Only basic referencing of variables and calling of functions is supported, although in theory most
-of Jinja2 can be used.
+Documents can contain template strings that are parsed using `Minijinja <https://github.com/mitsuhiko/minijinja>`_.
 
 Variables are bound to documents. To use documents, include them in template strings:
 
@@ -62,12 +63,13 @@ To process variables, call :func:`~configcrunch.YamlConfigDocument.process_vars`
 .. doctest:: main
 
     >>> document = Example.from_yaml("fixtures/variables.yml")
-    >>> print(document['map']['key'])
+    >>> print(document.internal_get('map')['key'])  # See the "Accessing Data" section
     {{ map.key2 }} <- all references are made from the root of the document
 
     >>> document.process_vars()
     Example(...)
 
+    >>> document.freeze()
     >>> print(document['this'])
     12 is a number
     >>> print(document['map']['key2'])
@@ -105,7 +107,7 @@ This will result in the following document:
     >>> expected.resolve_and_merge_references([]) # doctest: +ELLIPSIS
     Parent(...)
 
-    >>> str(actual) == str(expected)
+    >>> actual.to_dict() == expected.to_dict()
     True
 
 
@@ -114,3 +116,31 @@ This will result in the following document:
 
     BUT it is NOT supported to reference fields with template
     strings when using the :func:`~configcrunch.YamlConfigDocument.parent` helper in any way.
+
+Iterating
+~~~~~~~~~
+Configcrunch supports iteration over lists and over dicts (use ``.keys()``,``.values()`` or ``.items()``
+depending on what you need to iterate over).
+
+Value type interpretation
+~~~~~~~~~~~~~~~~~~~~~~~~~
+Configcrunch keeps the types of values as they are in the documents. The only expectation to this is
+values that contain only variables and are parse-able as an integer. These are auto-converted to integers
+for convenience. If you don't want that and need to interpret them as strings instead, use the ``str`` filter
+as described below.
+
+Filters
+~~~~~~~
+Minijinja supports filters, which are explained in more detail in the  `Minijinja documentation <https://docs.rs/minijinja/0.8.2/minijinja/filters/index.html>`_.
+
+All built-in filters can be used. In addition the following filters exist:
+
+- ``str`` (``{{ var|str }}``):
+        (Only works if the template contains ONLY this one statement and nothing else!)
+        Forces the value to be interpreted as a string, even if it could be auto-converted to an integer.
+
+- ``substr_start`` (``{{ var|substr_start(X) }}``):
+        Returns the first ``X`` characters of the string ``var``.
+
+- ``startswith`` (``{{ var|startswith(string) }}``):
+        Returns ``true`` if the string ``var`` starts with ``string``, else ``false``.

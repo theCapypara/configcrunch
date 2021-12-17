@@ -7,15 +7,19 @@ To allow the inclusion of sub-documents in your document,
 add a :class:`~configcrunch.DocReference` to your schema at the position that you
 expect a sub-document at.
 
-To actually process sub-documents, you need to override the
-:func:`~configcrunch.YamlConfigDocument.resolve_and_merge_references` method and
-call :func:`~configcrunch.load_subdocument` at the positions that you expect a sub-document.
+To actually process sub-documents, you need to specify, where they are located with the
+return value of the :func:`~configcrunch.YamlConfigDocument.subdocuments` method.
 
 Example for a document class ``Parent`` that includes an ``Example`` document from the previous
 chapters at either ``direct`` or in the map ``map`` as values:
 
 
 .. testsetup:: main
+
+    # A bit annoying, and might break without the Riptide/Docker setup :(
+    import os
+    if not os.path.exists("./fixtures"):
+        os.chdir("/src/docs/source")
 
     from schema import Schema, SchemaError, Optional
     from configcrunch import YamlConfigDocument
@@ -31,12 +35,19 @@ chapters at either ``direct`` or in the map ``map`` as values:
                 'this': str,
                 Optional('int'): int,
                 Optional('map'): dict,
-                Optional('list'): list
+                Optional('list'): list,
+                # If this document is used as a sub-document in a dict, Configrunch will add an
+                # entry to it with the key "$name" that contains the key in the dict.
+                Optional('$name'): str,
             })
+
+        @classmethod
+        def subdocuments(cls):
+            return []
 
 .. testcode:: main
 
-    from configcrunch import DocReference, load_subdocument, REMOVE
+    from configcrunch import DocReference
 
     class Parent(YamlConfigDocument):
         @classmethod
@@ -51,18 +62,18 @@ chapters at either ``direct`` or in the map ``map`` as values:
                 'map': {str: DocReference(Example)}
             })
 
-        def _load_subdocuments(self, lookup_paths):
-            # direct entry processing
-            if self["direct"] != REMOVE:
-                self["direct"] = load_subdocument(self["direct"], self, Example, lookup_paths)
-
-            # map entry processing
-            if self["map"] != REMOVE:
-                for key, doc in self["map"].items():
-                    if doc != REMOVE:
-                        self["map"][key] = load_subdocument(doc, self, Example, lookup_paths)
-
-            return self
+        @classmethod
+        def subdocuments(cls):
+            return [
+                # direct entry processing
+                ("direct", Example),
+                # dict entry processing (also works for lists)
+                ("map[]", Example),
+                # If you have more complex documents, you can reference sub fields, by specifying
+                # the path to it, seperated by /.
+                # ("level0/level1", Example),
+                # or ("level0/level1[]", Example),
+            ]
 
 The following document would be a valid document for ``Parent``:
 
@@ -91,14 +102,20 @@ Validating the document before calling this function will return in a SchemaErro
     >>> try:
     ...   document2.validate()
     ... except SchemaError as err:
-    ...   print(err)
-    Expected an instance of Example while validating.
+    ...   print(err)  # doctest: +IGNORE_RESULT - (order of validation errors is non-deterministic)
+    Key 'map' error:
+    Key 'one' error:
+    Expected an instance of 'Example' while validating, got 'dict': {'int': 3, 'this': 'is also an example-type document'}
 
-You can access sub-documents like other fields:
+You can access sub-documents like other fields. Calling freeze on the parent document will also
+freeze all sub-documents.
 
 .. doctest:: main
 
+    >>> document.freeze()
     >>> print(document['direct'])
     Example({'this': 'is an example-type document'})
     >>> print(document['direct']['this'])
     is an example-type document
+    >>> print(document['map']['one']['$name'])  # This will be added to all sub-documents in dicts.
+    one

@@ -2,4 +2,4 @@ base:
   $ref: ./folder/base
   int_field: 1
   more:
-    from_10: yes
+    from_10: "yes"

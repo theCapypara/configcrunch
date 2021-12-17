@@ -2,10 +2,12 @@ base:
     str_field: test
     level_dict:
         base_merge:
+            $name: base_merge
             name: level2
             more:
                 from: base_merge
         from_base_merge:
+            $name: from_base_merge
             name: no-merge
     level_direct:
         name: level1

@@ -8,7 +8,7 @@ class MergingEasyTest(ConfigcrunchTestCase):
 
     def test_same(self):
         self.assertDocEqualMerging(
-            'easy.yml',
+            'easy_expected.yml',
             'easy.yml',
             []
         )

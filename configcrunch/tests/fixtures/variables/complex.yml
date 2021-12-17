@@ -4,13 +4,21 @@ base:
       name: "{{ parent().more.source }}"
       more:
         a: "{{ level_helper() }}"
+        brackets_key: brackets_content
     b:
       name: "{{ parent().simple_helper() }}"
       more:
         a: "{{ parent().more.source|upper }}" # Jinja2 filter
+        b_param_top_level: "{{ level_helper_taking_param('sun') }}"
   more:
     source: source
     a: "{{ level_dict.a.parent().more.source }}"
+    brackets: "{{ level_dict.a.more['brackets_key'] }}"
     b: "{{ level_dict.a.parent().simple_helper() }}"
     c: "{{ level_dict.a.level_helper() }}"
     d: "{{ level_dict.a.parent().level_dict.b.level_helper() }}"
+    e: "{{ level_dict.a.level_helper_taking_param('world') }}"
+    e_in_dict:
+      please_work: "does this {{ level_dict.a.level_helper_taking_param('world')}} work?"
+      please_work_double_quotes: "does this {{ level_dict.a.level_helper_taking_param(\"househousehouse\")}} still work?"
+    e_in_list: ["{{ level_dict.a.level_helper_taking_param('world') }}"]

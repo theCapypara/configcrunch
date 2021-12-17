@@ -1,4 +1,4 @@
-from configcrunch.advanced_loader import load_multiple_yml
+from configcrunch import load_multiple_yml
 from configcrunch.tests.fixtures.documents import Base
 from configcrunch.tests.acceptance.testcases import ConfigcrunchTestCase, deep_sort
 

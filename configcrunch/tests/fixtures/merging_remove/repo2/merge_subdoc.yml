@@ -1,0 +1,10 @@
+base:
+  level_dict:
+    a: $remove
+    b:
+      base_ref: $remove
+    z:
+      base_ref:
+        level_dict:
+          one: $remove
+  level_direct: $remove

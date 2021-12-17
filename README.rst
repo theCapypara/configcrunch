@@ -3,8 +3,8 @@ Configcrunch
 
 |build| |docs| |pypi-version| |pypi-downloads| |pypi-license| |pypi-pyversions|
 
-.. |build| image:: https://jenkins.riptide.parakoopa.de/buildStatus/icon?job=configcrunch%2Fmaster
-    :target: https://jenkins.riptide.parakoopa.de/blue/organizations/jenkins/configcrunch/activity
+.. |build| image:: https://img.shields.io/github/workflow/status/theCapypara/configcrunch/Build,%20test%20and%20publish
+    :target: https://github.com/theCapypara/configcrunch/actions
     :alt: Build Status
 
 .. |docs| image:: https://readthedocs.org/projects/configcrunch/badge/?version=latest
@@ -25,8 +25,8 @@ Configcrunch
 .. |pypi-pyversions| image:: https://img.shields.io/pypi/pyversions/configcrunch
     :alt: Supported Python versions
 
-Configcrunch is a Python library for reading YAML-based configuration files that aims to be simple
-while also providing some very powerful features.
+Configcrunch is a Python library written in Rust for reading YAML-based configuration files.
+It aims to be simple and fast while also providing some very powerful features.
 
 Configcrunch is compatible with Python 3.6 and up.
 
@@ -37,14 +37,14 @@ Features:
 - Read configuration files from YAML files.
 - Define various types of configuration files, that can be validated via a schema.
 - Types of configuration files are defined as separate Python classes.
-- Documents can be configured to contain sub-documents of any type.
-- Documents can contain `Jinja2 <http://jinja.pocoo.org/docs/2.10/>`_ based variables that can
-  reference any other field inside the same or parent document.
+- Documents can be configured to contain nested documents of any type.
+- Documents can contain `Minijinja <https://github.com/mitsuhiko/minijinja>`_ templates that
+  can reference any other field inside the same or parent document.
 - The classes that represent your document types can contain methods that can be used
   inside the configuration files.
 - Documents can reference documents from other files. Configcrunch will merge them together.
   You decide where referenced documents are looked up.
-- Configuration objects can also be created without YAML files, by using default Python dicts.
+- Configuration objects can also be created without YAML files, by using ordinary Python dicts.
 - All features are optional.
 
 Used by:
@@ -86,7 +86,7 @@ This is an example that uses most of the features described above, using two doc
     # classes.py
     from schema import Schema, Optional
 
-    from configcrunch import YamlConfigDocument, DocReference, load_subdocument, variable_helper, REMOVE
+    from configcrunch import YamlConfigDocument, DocReference, variable_helper
 
 
     class One(YamlConfigDocument):
@@ -105,10 +105,11 @@ This is an example that uses most of the features described above, using two doc
                 }
             )
 
-        def _load_subdocuments(self, lookup_paths):
-            if "sub" in self and "sub" != REMOVE:
-                self["sub"] = load_subdocument(self["sub"], self, Two, lookup_paths)
-            return self
+        @classmethod
+        def subdocuments(cls):
+            return [
+                ("sub", Two)
+            ]
 
         @variable_helper
         def method(self):
@@ -131,6 +132,10 @@ This is an example that uses most of the features described above, using two doc
                 }
             )
 
+        @classmethod
+        def subdocuments(cls):
+            return []
+
 
 The document "one.yml" can then be read via Python:
 
@@ -152,7 +157,7 @@ The document "one.yml" can then be read via Python:
 Tests
 -----
 
-Inside the ``configcrunch.tests`` package are acceptance tests. Unit tests are WIP.
+Inside the ``configcrunch.tests`` package are tests.
 
 To run the tests, see ``run_tests.sh``.
 

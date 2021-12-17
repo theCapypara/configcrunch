@@ -1,6 +1,7 @@
 base:
   level_dict:
     base:
+      $name: base
       name: base
       more:
         one: one
@@ -9,6 +10,7 @@ base:
         one_two: two
         two_three: three
     one:
+      $name: one
       name: one
       more:
         one: one
@@ -17,6 +19,7 @@ base:
         one_two: two
         two_three: three
     two:
+      $name: two
       name: two
       base_ref:
         more:
@@ -33,6 +36,7 @@ base:
         one_two: two
         two_three: three
     three:
+      $name: three
       name: three
       more:
         one: one
@@ -41,6 +45,7 @@ base:
         one_two: two
         two_three: three
     three_base:
+      $name: three_base
       name: base
       more:
         one: one
@@ -49,6 +54,7 @@ base:
         one_two: two
         two_three: three
     two_three:
+      $name: two_three
       name: three
       more:
         one: one
@@ -57,6 +63,7 @@ base:
         one_two: two
         two_three: three
     one_two:
+      $name: one_two
       name: two
       more:
         one: one

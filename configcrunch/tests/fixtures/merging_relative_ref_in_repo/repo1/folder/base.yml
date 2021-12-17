@@ -3,4 +3,4 @@ base:
   int_field: 0
   more:
     version: 0
-    from_folder_base: yes
+    from_folder_base: "yes"

@@ -2,6 +2,7 @@ base:
     str_field: merge-success
     level_dict:
         invalid_ref:
+          $name: invalid_ref
           name: Invalid
           more:
             $remove: hello
@@ -10,6 +11,7 @@ base:
               - entry2
               - entry4
         abc:
+          $name: abc
           name: abc
           base_ref:
             level_direct:

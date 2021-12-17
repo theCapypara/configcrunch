@@ -1,5 +1,5 @@
 from schema import Schema
-from typing import List
+from typing import List, Callable, Optional
 
 from configcrunch import YamlConfigDocument
 
@@ -44,13 +44,16 @@ class YamlConfigDocumentStub(YamlConfigDocument):
     def validate(self) -> bool:
         raise NotImplementedError("not available for stub")
 
-    def _initialize_data_before_merge(self):
+    def _initialize_data_before_merge(self, *args):
         raise NotImplementedError("not available for stub")
 
-    def _initialize_data_after_merge(self):
+    def _initialize_data_after_merge(self, *args):
         raise NotImplementedError("not available for stub")
 
-    def _initialize_data_after_variables(self):
+    def _initialize_data_after_variables(self, *args):
+        raise NotImplementedError("not available for stub")
+
+    def _initialize_data_after_freeze(self):
         raise NotImplementedError("not available for stub")
 
     def resolve_and_merge_references(self, lookup_paths: List[str]) -> 'YamlConfigDocument':
@@ -59,10 +62,10 @@ class YamlConfigDocumentStub(YamlConfigDocument):
     def process_vars(self) -> 'YamlConfigDocument':
         raise NotImplementedError("not available for stub")
 
-    def process_vars_for(self, target: str) -> str:
+    def process_vars_for(self, target: str, additional_helpers: List[Callable] = None) -> str:
         raise NotImplementedError("not available for stub")
 
-    def parent(self) -> 'YamlConfigDocument':
+    def parent(self) -> Optional['YamlConfigDocument']:
         return self.parent_doc
 
     # Magic methods for accessing doc are left from super.

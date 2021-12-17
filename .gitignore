@@ -70,6 +70,7 @@ instance/
 
 # Sphinx documentation
 riptide/config/document/_build/
+.doctrees
 
 # PyBuilder
 target/
@@ -104,6 +105,9 @@ venv.bak/
 
 # mkdocs documentation
 /site
+
+# pytest
+pytest.xml
 
 # mypy
 .mypy_cache/

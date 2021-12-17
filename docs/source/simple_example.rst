@@ -7,6 +7,13 @@ This class will represent one type of document and can be used to load a YAML fi
 You need to specify a header and a schema for the document.
 In this simple example we'll use the header ``example`` and a schema that validates all documents.
 
+.. testsetup:: main
+
+    # A bit annoying, and might break without the Riptide/Docker setup :(
+    import os
+    if not os.path.exists("./fixtures"):
+        os.chdir("/src/docs/source")
+
 .. testcode:: main
 
     from schema import Schema
@@ -21,6 +28,14 @@ In this simple example we'll use the header ``example`` and a schema that valida
         def schema(cls) -> Schema:
             return Schema(any)
 
+        @classmethod
+        def subdocuments(cls):
+            return []
+
+.. warning::
+
+    Your class can not have an __init__ method. It will not be called.
+
 This class can then be used to load all YAML documents with the header example:
 
 .. include:: fixtures/simple_example.yml
@@ -31,10 +46,10 @@ To load the document, use your created class:
 .. testcode:: main
 
     document = Example.from_yaml('fixtures/simple_example.yml')
+    document.freeze()
 
-The ``document`` object can then be used like a Python dict to get and retrieve values
-in the document. You can also use the ``document.doc`` field to directly access the
-dictionary that represents the document.
+After freezing_ the document, the ``document`` object can then be used like a Python dict to get values in the document.
+You can also use the ``document.doc`` field to directly access the dictionary that represents the document.
 
 .. doctest:: main
 
@@ -48,9 +63,12 @@ dictionary that represents the document.
     document can contain anything
 
 To get a full dict representation of the document call  :func:`~configcrunch.YamlConfigDocument.to_dict`.
-The dict will also contain the document header. This can be used with packages like pyyaml, to convert the document back into a YAML file.
+The dict will also contain the document header. This can be used with packages like pyyaml, to convert the
+document back into a YAML file.
 
 .. doctest:: main
 
     >>> print(document.to_dict()["example"]["map"]["key"])
     value
+
+.. _freezing: /accessing_data.html

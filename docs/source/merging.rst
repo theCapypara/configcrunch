@@ -9,8 +9,13 @@ then the documents are merged on top of them. This allows you to overwrite and m
 
 .. testsetup:: main
 
+    # A bit annoying, and might break without the Riptide/Docker setup :(
+    import os
+    if not os.path.exists("./fixtures"):
+        os.chdir("/src/docs/source")
+
     from schema import Schema, SchemaError, Optional
-    from configcrunch import YamlConfigDocument, REMOVE
+    from configcrunch import YamlConfigDocument
 
     class Example(YamlConfigDocument):
         @classmethod
@@ -26,7 +31,9 @@ then the documents are merged on top of them. This allows you to overwrite and m
                 Optional('list'): list
             })
 
-    from configcrunch import DocReference, load_subdocument
+        @classmethod
+        def subdocuments(cls):
+            return []
 
     class Parent(YamlConfigDocument):
         @classmethod
@@ -41,18 +48,12 @@ then the documents are merged on top of them. This allows you to overwrite and m
                 'map': {str: DocReference(Example)}
             })
 
-        def _load_subdocuments(self, lookup_paths):
-            # direct entry processing
-            if self["direct"] != REMOVE:
-                self["direct"] = load_subdocument(self["direct"], self, Example, lookup_paths)
-
-            # map entry processing
-            if self["map"] != REMOVE:
-                for key, doc in self["map"].items():
-                    if doc != REMOVE:
-                        self["map"][key] = load_subdocument(doc, self, Example, lookup_paths)
-
-            return self
+        @classmethod
+        def subdocuments(cls):
+            return [
+                ("direct", Example),
+                ("map[]", Example)
+            ]
 
 The following examples will use the  ``Parent`` and ``Example`` document types from the previous chapters.
 
@@ -74,9 +75,10 @@ Configcrunch will notice the ``$ref`` key, look for ``referenced-document.yml`` 
 .. doctest:: main
 
     >>> document = Parent.from_yaml("fixtures/parent_with_ref.yml")
-    >>> document.resolve_and_merge_references(["fixtures/repo"]) # doctest: +ELLIPSIS
+    >>> document.resolve_and_merge_references(["./fixtures/repo"]) # doctest: +ELLIPSIS
     Parent(...)
 
+    >>> document.freeze()
     >>> print(document['name'])
     overwritten
     >>> print(document['direct']['this'])
@@ -89,11 +91,10 @@ The list passed to :func:`~configcrunch.YamlConfigDocument.resolve_and_merge_ref
 As you can see the resulting document is a combination of the two documents. All values in ``referenced-document.yml``
 were replaced with values from ``parent_with_refs.yml``. This also spans sub-documents.
 
-The resulting document is (overwrites from ``parent_with_ref.yml`` are emphasized):
+The resulting document is:
 
 .. literalinclude:: fixtures/expected_results/merge1.yml
    :language: yaml
-   :emphasize-lines: 2,5,9-10
 
 .. doctest:: main
    :hide:
@@ -103,7 +104,7 @@ The resulting document is (overwrites from ``parent_with_ref.yml`` are emphasize
     >>> expected.resolve_and_merge_references([]) # doctest: +ELLIPSIS
     Parent(...)
 
-    >>> str(actual) == str(expected)
+    >>> actual.to_dict() == expected.to_dict()
     True
 
 Chaining references
@@ -134,13 +135,13 @@ Example after merge:
    :hide:
 
     >>> actual = Parent.from_yaml("fixtures/parent_with_ref_chain.yml")
-    >>> actual.resolve_and_merge_references(["fixtures/repo"]) # doctest: +ELLIPSIS
+    >>> actual.resolve_and_merge_references(["./fixtures/repo"]) # doctest: +ELLIPSIS
     Parent(...)
     >>> expected = Parent.from_yaml("fixtures/expected_results/merge3.yml")
     >>> expected.resolve_and_merge_references([]) # doctest: +ELLIPSIS
     Parent(...)
 
-    >>> str(actual) == str(expected)
+    >>> actual.to_dict() == expected.to_dict()
     True
 
 
@@ -169,13 +170,13 @@ This will result in the following document being merged:
    :hide:
 
     >>> actual = Parent.from_yaml("fixtures/parent_with_ref_and_sub.yml")
-    >>> actual.resolve_and_merge_references(["fixtures/repo"]) # doctest: +ELLIPSIS
+    >>> actual.resolve_and_merge_references(["./fixtures/repo"]) # doctest: +ELLIPSIS
     Parent(...)
     >>> expected = Parent.from_yaml("fixtures/expected_results/merge2.yml")
     >>> expected.resolve_and_merge_references([]) # doctest: +ELLIPSIS
     Parent(...)
 
-    >>> str(actual) == str(expected)
+    >>> actual.to_dict() == expected.to_dict()
     True
 
 .. warning::
@@ -213,7 +214,6 @@ Example document:
 
 .. literalinclude:: fixtures/parent_with_ref_and_delete.yml
    :language: yaml
-   :emphasize-lines: 8,10
 
 Merge result:
 
@@ -224,11 +224,11 @@ Merge result:
    :hide:
 
     >>> actual = Parent.from_yaml("fixtures/parent_with_ref_and_delete.yml")
-    >>> actual.resolve_and_merge_references(["fixtures/repo"]) # doctest: +ELLIPSIS
+    >>> actual.resolve_and_merge_references(["./fixtures/repo"]) # doctest: +ELLIPSIS
     Parent(...)
     >>> expected = Parent.from_yaml("fixtures/expected_results/merge4.yml")
     >>> expected.resolve_and_merge_references([]) # doctest: +ELLIPSIS
     Parent(...)
 
-    >>> str(actual) == str(expected)
+    >>> actual.to_dict() == expected.to_dict()
     True

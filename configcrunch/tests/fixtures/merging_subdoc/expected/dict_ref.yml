@@ -2,12 +2,15 @@ base:
     str_field: test
     level_dict:
         no_merge:
+          $name: no_merge
           name: level1
           more:
             merge_test: false
         merge:
+          $name: merge
           name: level1
           more:
             merge_test: true
         no_ref:
+          $name: no_ref
           name: no-ref
