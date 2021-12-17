@@ -22,7 +22,7 @@ setup(
         'schema >= 0.7'
     ],
     classifiers=[
-        'Development Status :: 2 - Beta',
+        'Development Status :: 4 - Beta',
         'Programming Language :: Python',
         'Programming Language :: Rust',
         'Intended Audience :: Developers',
