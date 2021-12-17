@@ -192,14 +192,13 @@ pub(crate) fn load_referenced_document(
     // error handling with nested iterators/vectors involved sure is readable.
     let mut out: Vec<PyYamlConfigDocument> = Vec::with_capacity(100);
     for absolute_path in absolute_paths(&ref_path_in_repo, lookup_paths)? {
-        if let Ok(dicts) = load_dicts(&absolute_path) {
-            match dicts.into_iter().map(|doc_dict| dict_to_doc_cls(
-                py, doc_dict, doc_cls.as_ref(py), &absolute_path, &ref_path_in_repo, document.clone_ref(py)
-            )).collect::<PyResult<Vec<PyYamlConfigDocument>>>() {
-                Ok(mut inner_vec) => out.append(&mut inner_vec),
-                Err(e) => return Err(e)
-            };
-        }
+        let dicts = load_dicts(&absolute_path)?;
+        match dicts.into_iter().map(|doc_dict| dict_to_doc_cls(
+            py, doc_dict, doc_cls.as_ref(py), &absolute_path, &ref_path_in_repo, document.clone_ref(py)
+        )).collect::<PyResult<Vec<PyYamlConfigDocument>>>() {
+            Ok(mut inner_vec) => out.append(&mut inner_vec),
+            Err(e) => return Err(e)
+        };
     }
     Ok(out)
 }
