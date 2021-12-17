@@ -57,7 +57,6 @@ You can also implement these hook methods on your classes, to manipulate the dat
 events of the lifecycle of the document:
 
 .. method:: _initialize_data_before_merge(self, data: dict) -> dict
-  :abstractmethod:
 
     May be used to initialize the document by adding / changing data.
 
@@ -69,7 +68,6 @@ events of the lifecycle of the document:
 
 
 .. method:: _initialize_data_after_merge(self, data: dict) -> dict
-  :abstractmethod:
 
     May be used to initialize the document by adding / changing data.
 
@@ -81,7 +79,6 @@ events of the lifecycle of the document:
 
 
 .. method:: _initialize_data_after_variables(self, data: dict) -> dict
-  :abstractmethod:
 
     May be used to initialize the document by adding / changing data.
 
@@ -93,7 +90,6 @@ events of the lifecycle of the document:
 
 
 .. method:: _initialize_data_after_freeze(self)
-  :abstractmethod:
 
     May be used to initialize the document by adding / changing data.
 
