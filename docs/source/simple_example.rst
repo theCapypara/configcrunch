@@ -32,6 +32,10 @@ In this simple example we'll use the header ``example`` and a schema that valida
         def subdocuments(cls):
             return []
 
+.. warning::
+
+    Your class can not have an __init__ method. It will not be called.
+
 This class can then be used to load all YAML documents with the header example:
 
 .. include:: fixtures/simple_example.yml

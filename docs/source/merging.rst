@@ -91,11 +91,10 @@ The list passed to :func:`~configcrunch.YamlConfigDocument.resolve_and_merge_ref
 As you can see the resulting document is a combination of the two documents. All values in ``referenced-document.yml``
 were replaced with values from ``parent_with_refs.yml``. This also spans sub-documents.
 
-The resulting document is (overwrites from ``parent_with_ref.yml`` are emphasized):
+The resulting document is:
 
 .. literalinclude:: fixtures/expected_results/merge1.yml
    :language: yaml
-   :emphasize-lines: 2,5,9-10
 
 .. doctest:: main
    :hide:
@@ -215,7 +214,6 @@ Example document:
 
 .. literalinclude:: fixtures/parent_with_ref_and_delete.yml
    :language: yaml
-   :emphasize-lines: 8,10
 
 Merge result:
 
