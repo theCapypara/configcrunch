@@ -1,5 +1,4 @@
-#![feature(path_try_exists)]
-#![feature(in_band_lifetimes)]
+#![feature(fs_try_exists)]
 #![feature(trait_alias)]
 
 use pyo3::prelude::*;

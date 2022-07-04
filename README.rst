@@ -49,7 +49,7 @@ Features:
 
 Used by:
 
-- `Riptide <https://github.com/Parakoopa/riptide-lib>`_
+- `Riptide <https://github.com/theCapypara/riptide-lib>`_
 - (Your project here! Open an issue.)
 
 By default Configcrunch uses `schema <https://pypi.org/project/schema/>`_ to validate schemas.

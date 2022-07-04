@@ -106,7 +106,7 @@ impl Display for SimpleYcdValueType {
     }
 }
 
-impl FromPyObject<'source> for YcdValueType {
+impl<'source> FromPyObject<'source> for YcdValueType {
     fn extract(v: &'source PyAny) -> PyResult<Self> {
         match v.get_type().name()? {
             "dict" => if let Ok(v) = <HashMap<String, YcdValueType>>::extract(v) {

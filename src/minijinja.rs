@@ -233,7 +233,7 @@ impl Object for PyYamlConfigDocument {
 }
 
 struct YHashMapItem<'a>(String, &'a YcdValueType);
-impl Serialize for YHashMapItem<'a> {
+impl<'a> Serialize for YHashMapItem<'a> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
         serializer.serialize_some(&(&self.0, self.1))
     }
