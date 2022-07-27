@@ -10,7 +10,7 @@ with open(path.join(this_directory, 'README.rst'), encoding='utf-8') as f:
 
 setup(
     name='configcrunch',
-    version='1.0.1',
+    version='1.0.2',
     packages=["configcrunch"],
     package_data={"configcrunch": ["py.typed", "*.pyi"]},
     rust_extensions=[RustExtension(f"configcrunch._main", binding=Binding.PyO3)],

@@ -1,6 +1,7 @@
 from configcrunch._main import YamlConfigDocument, DocReference, load_multiple_yml, \
     ConfigcrunchError, ReferencedDocumentNotFound, CircularDependencyError, \
     VariableProcessingError, InvalidDocumentError, InvalidHeaderError, InvalidRemoveError
+from configcrunch.tests.test_utils import YamlConfigDocumentStub
 
 # Constants
 REF = "$ref"
@@ -44,5 +45,7 @@ __all__ = [
     'VariableProcessingError',
     'InvalidDocumentError',
     'InvalidHeaderError',
-    'InvalidRemoveError'
+    'InvalidRemoveError',
+
+    'YamlConfigDocumentStub'
 ]
