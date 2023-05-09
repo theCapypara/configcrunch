@@ -32,7 +32,7 @@ jobs:
         RUSTUP_TOOLCHAIN: nightly
     - name: Upload Test Results
       if: always()
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: Pytest Test Results (Python ${{ matrix.python-version }})
         path: pytest.xml
@@ -80,7 +80,7 @@ jobs:
           python-versions: 'cp37-cp37m cp38-cp38 cp39-cp39 cp310-cp310 cp311-cp311'
           pre-build-command: 'source ./build-manylinux.sh'
       - name: Upload wheels
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: wheels-linux
           path: dist/*.whl
@@ -128,7 +128,7 @@ jobs:
         run: |
           python setup.py bdist_wheel
       - name: Upload wheels
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: wheels-${{ matrix.os }}-py${{ matrix.python-version }}-${{ matrix.arch }}
           path: dist/*.whl
