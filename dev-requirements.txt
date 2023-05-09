@@ -1,3 +1,3 @@
 setuptools-rust
 toml
-pyyaml==5.4
+pyyaml==6.0
