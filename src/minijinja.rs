@@ -16,12 +16,12 @@ macro_rules! typed_closure {
     } }
 }
 
-trait FuncFunc = Fn(&State, Vec<Value>) -> Result<Value, Error> + Sync + Send + 'static;
+type FuncFunc = dyn Fn(&State, Vec<Value>) -> Result<Value, Error> + Sync + Send + 'static;
 
 pub(crate) struct TemplateRenderer<'env> {
     env: Environment<'env>,
     document: PyYamlConfigDocument,
-    globals: HashMap<String, Box<dyn FuncFunc>>
+    globals: HashMap<String, Box<FuncFunc>>
 }
 
 impl<'env> TemplateRenderer<'env> {
@@ -70,8 +70,8 @@ impl<'env> TemplateRenderer<'env> {
         Value::from_object(document)
     }
 
-    pub fn create_helper_fn(pyf: PyObject) -> Box<dyn FuncFunc> {
-         Box::new(typed_closure!((FuncFunc), move |_state: &State, args: Vec<Value>| -> Result<Value, Error> {
+    pub fn create_helper_fn(pyf: PyObject) -> Box<FuncFunc> {
+         Box::new(typed_closure!((Fn(&State, Vec<Value>) -> Result<Value, Error> + Sync + Send + 'static), move |_state: &State, args: Vec<Value>| -> Result<Value, Error> {
              Python::with_gil(|py| {
                  let pyargs = PyTuple::new(py, args.into_iter().map(WValue));
 

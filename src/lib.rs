@@ -1,6 +1,3 @@
-#![feature(fs_try_exists)]
-#![feature(trait_alias)]
-
 use pyo3::prelude::*;
 use pyo3::{PyResult, Python, wrap_pyfunction};
 

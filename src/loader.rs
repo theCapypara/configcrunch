@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 use std::env::current_dir;
-use std::fs;
 use std::fs::File;
 use std::path::PathBuf;
 use path_absolutize::Absolutize;
@@ -110,10 +109,8 @@ pub(crate) fn load_dicts(path: &str) -> PyResult<Vec<YcdDict>> {
 
 fn load_dicts_try_single_path(path: PathBuf) -> PyResult<Option<YcdDict>> {
     if let Ok(c) = path.absolutize_virtually("/") {
-        if let Ok(e) = fs::try_exists(&c) {
-            if e {
-                return Ok(Some(load_yaml_file(c.to_str().unwrap())?))
-            }
+        if c.exists() {
+            return Ok(Some(load_yaml_file(c.to_str().unwrap())?))
         }
     }
     Ok(None)
