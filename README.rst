@@ -3,7 +3,7 @@ Configcrunch
 
 |build| |docs| |pypi-version| |pypi-downloads| |pypi-license| |pypi-pyversions|
 
-.. |build| image:: https://img.shields.io/github/workflow/status/theCapypara/configcrunch/Build,%20test%20and%20publish
+.. |build| image:: https://img.shields.io/github/actions/workflow/status/theCapypara/configcrunch/build.yml 
     :target: https://github.com/theCapypara/configcrunch/actions
     :alt: Build Status
 
