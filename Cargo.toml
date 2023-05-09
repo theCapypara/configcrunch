@@ -11,7 +11,7 @@ crate-type = ["cdylib"]
 name = "configcrunch"
 
 [dependencies]
-pyo3 = { version = "0.15", features = ["extension-module"] }
+pyo3 = { version = "0.18", features = ["extension-module"] }
 serde = { version = "1", features = ["derive"]}
 serde_yaml = "0.8"
 minijinja = { git = "https://github.com/theCapypara/minijinja.git", branch = "configcrunch", features = ["memchr"] }
