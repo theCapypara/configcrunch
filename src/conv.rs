@@ -1,10 +1,10 @@
-use std::collections::HashMap;
-use std::fmt::{Debug, Display, Formatter};
+use crate::YamlConfigDocument;
 use pyo3::exceptions;
 use pyo3::prelude::*;
 use pyo3::types::{PyBool, PyDict, PyFloat, PyInt, PyList, PyString};
 use serde::{Deserialize, Serialize, Serializer};
-use crate::YamlConfigDocument;
+use std::collections::HashMap;
+use std::fmt::{Debug, Display, Formatter};
 
 pub(crate) type YcdDict = HashMap<String, YcdValueType>;
 pub(crate) type YcdList = Vec<YcdValueType>;
@@ -88,7 +88,7 @@ impl Display for YcdValueType {
             YcdValueType::YString(v) => write!(f, "{}", v),
             YcdValueType::Bool(v) => write!(f, "{}", v),
             YcdValueType::Int(v) => write!(f, "{}", v),
-            YcdValueType::Float(v) => write!(f, "{}", v)
+            YcdValueType::Float(v) => write!(f, "{}", v),
         }
     }
 }
@@ -101,7 +101,7 @@ impl Display for SimpleYcdValueType {
             SimpleYcdValueType::YString(v) => write!(f, "{}", v),
             SimpleYcdValueType::Bool(v) => write!(f, "{}", v),
             SimpleYcdValueType::Int(v) => write!(f, "{}", v),
-            SimpleYcdValueType::Float(v) => write!(f, "{}", v)
+            SimpleYcdValueType::Float(v) => write!(f, "{}", v),
         }
     }
 }
@@ -109,25 +109,37 @@ impl Display for SimpleYcdValueType {
 impl<'source> FromPyObject<'source> for YcdValueType {
     fn extract(v: &'source PyAny) -> PyResult<Self> {
         match v.get_type().name()? {
-            "dict" => if let Ok(v) = <HashMap<String, YcdValueType>>::extract(v) {
-                return Ok(YcdValueType::Dict(v))
-            },
-            "list" => if let Ok(v) = <Vec<YcdValueType>>::extract(v) {
-                return Ok(YcdValueType::List(v))
-            },
-            "str" => if let Ok(v) = <String>::extract(v) {
-                return Ok(YcdValueType::YString(v))
-            },
-            "int" => if let Ok(v) = <i64>::extract(v) {
-                return Ok(YcdValueType::Int(v))
-            },
-            "bool" => if let Ok(v) = <bool>::extract(v) {
-                return Ok(YcdValueType::Bool(v))
+            "dict" => {
+                if let Ok(v) = <HashMap<String, YcdValueType>>::extract(v) {
+                    return Ok(YcdValueType::Dict(v));
+                }
             }
-            "float" => if let Ok(v) = <f64>::extract(v) {
-                return Ok(YcdValueType::Float(v))
-            },
-            &_ => {/* Go to fallback*/}
+            "list" => {
+                if let Ok(v) = <Vec<YcdValueType>>::extract(v) {
+                    return Ok(YcdValueType::List(v));
+                }
+            }
+            "str" => {
+                if let Ok(v) = <String>::extract(v) {
+                    return Ok(YcdValueType::YString(v));
+                }
+            }
+            "int" => {
+                if let Ok(v) = <i64>::extract(v) {
+                    return Ok(YcdValueType::Int(v));
+                }
+            }
+            "bool" => {
+                if let Ok(v) = <bool>::extract(v) {
+                    return Ok(YcdValueType::Bool(v));
+                }
+            }
+            "float" => {
+                if let Ok(v) = <f64>::extract(v) {
+                    return Ok(YcdValueType::Float(v));
+                }
+            }
+            &_ => { /* Go to fallback*/ }
         }
         // Fallback
         if let Ok(v) = v.extract::<Py<YamlConfigDocument>>() {
@@ -145,8 +157,11 @@ impl<'source> FromPyObject<'source> for YcdValueType {
         } else if let Ok(v) = <HashMap<String, YcdValueType>>::extract(v) {
             Ok(YcdValueType::Dict(v))
         } else {
-            Err(exceptions::PyTypeError::new_err(format!("Could not map type for {:?}", v)))
-         }
+            Err(exceptions::PyTypeError::new_err(format!(
+                "Could not map type for {:?}",
+                v
+            )))
+        }
     }
 }
 
@@ -181,13 +196,14 @@ impl ToPyObject for YcdValueType {
 }
 
 impl Serialize for PyYamlConfigDocument {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
-        Python::with_gil(|py|
-            match self.0.extract::<YamlConfigDocument>(py) {
-                Ok(ycd) => serializer.collect_map(ycd.doc),
-                Err(_) => panic!("Internal serialization failed.")
-            }
-        )
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        Python::with_gil(|py| match self.0.extract::<YamlConfigDocument>(py) {
+            Ok(ycd) => serializer.collect_map(ycd.doc),
+            Err(_) => panic!("Internal serialization failed."),
+        })
     }
 }
 
@@ -206,12 +222,18 @@ impl From<PyYamlConfigDocument> for Py<YamlConfigDocument> {
 impl From<SimpleYcdValueType> for YcdValueType {
     fn from(e: SimpleYcdValueType) -> Self {
         match e {
-            SimpleYcdValueType::Dict(v) => YcdValueType::Dict(v.into_iter().map(|(k, v)| (k, v.into())).collect::<YcdDict>()),
-            SimpleYcdValueType::List(v) => YcdValueType::List(v.into_iter().map(|x| x.into()).collect::<YcdList>()),
+            SimpleYcdValueType::Dict(v) => YcdValueType::Dict(
+                v.into_iter()
+                    .map(|(k, v)| (k, v.into()))
+                    .collect::<YcdDict>(),
+            ),
+            SimpleYcdValueType::List(v) => {
+                YcdValueType::List(v.into_iter().map(|x| x.into()).collect::<YcdList>())
+            }
             SimpleYcdValueType::YString(v) => YcdValueType::YString(v),
             SimpleYcdValueType::Bool(v) => YcdValueType::Bool(v),
             SimpleYcdValueType::Int(v) => YcdValueType::Int(v),
-            SimpleYcdValueType::Float(v) => YcdValueType::Float(v)
+            SimpleYcdValueType::Float(v) => YcdValueType::Float(v),
         }
     }
 }
@@ -219,13 +241,19 @@ impl From<SimpleYcdValueType> for YcdValueType {
 impl From<YcdValueType> for SimpleYcdValueType {
     fn from(e: YcdValueType) -> Self {
         match e {
-            YcdValueType::Dict(v) => SimpleYcdValueType::Dict(v.into_iter().map(|(k, v)| (k, v.into())).collect()),
-            YcdValueType::List(v) => SimpleYcdValueType::List(v.into_iter().map(|x| x.into()).collect()),
+            YcdValueType::Dict(v) => {
+                SimpleYcdValueType::Dict(v.into_iter().map(|(k, v)| (k, v.into())).collect())
+            }
+            YcdValueType::List(v) => {
+                SimpleYcdValueType::List(v.into_iter().map(|x| x.into()).collect())
+            }
             YcdValueType::YString(v) => SimpleYcdValueType::YString(v),
             YcdValueType::Bool(v) => SimpleYcdValueType::Bool(v),
             YcdValueType::Int(v) => SimpleYcdValueType::Int(v),
             YcdValueType::Float(v) => SimpleYcdValueType::Float(v),
-            _ => {panic!("Invalid unexpected internal conversion.")}  // This should never happen.
+            _ => {
+                panic!("Invalid unexpected internal conversion.")
+            } // This should never happen.
         }
     }
 }
@@ -258,7 +286,11 @@ pub(crate) fn pyany_to_simple_ycd(v: &PyAny) -> SimpleYcdValueType {
 
 impl From<&PyDict> for SimpleYcdValueType {
     fn from(v: &PyDict) -> Self {
-        SimpleYcdValueType::Dict(v.into_iter().map(|(k, v)| (pyany_to_simple_ycd(k).to_string(), pyany_to_simple_ycd(v))).collect())
+        SimpleYcdValueType::Dict(
+            v.into_iter()
+                .map(|(k, v)| (pyany_to_simple_ycd(k).to_string(), pyany_to_simple_ycd(v)))
+                .collect(),
+        )
     }
 }
 

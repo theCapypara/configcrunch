@@ -1,20 +1,25 @@
+use crate::conv::YcdValueType::{Dict, List, YString, Ycd};
+use crate::conv::{PyYamlConfigDocument, YcdDict, YcdList, YcdValueType};
+use crate::{
+    construct_new_ycd, load_referenced_document, InvalidRemoveError, ReferencedDocumentNotFound,
+    YamlConfigDocument, REF, REMOVE, REMOVE_FROM_LIST_PREFIX,
+};
+use pyo3::exceptions;
+pub(crate) use pyo3::prelude::*;
+use pyo3::types::PyType;
 use std::collections::hash_map::Entry;
 use std::iter::Peekable;
 use std::mem::take;
 use std::str::Split;
-use pyo3::exceptions;
-pub(crate) use pyo3::prelude::*;
-use pyo3::types::PyType;
-use crate::conv::{PyYamlConfigDocument, YcdDict, YcdList, YcdValueType};
-use crate::conv::YcdValueType::{Dict, List, Ycd, YString};
-use crate::{construct_new_ycd, InvalidRemoveError, load_referenced_document, REF, ReferencedDocumentNotFound, REMOVE, REMOVE_FROM_LIST_PREFIX, YamlConfigDocument};
-
 
 #[derive(FromPyObject)]
 pub(crate) struct SubdocSpec(String, Py<PyType>); // path spec, type
 
 impl SubdocSpec {
-    pub(crate) fn replace_at<C>(&self, from: &mut YcdDict, cb: C, py: Python) -> PyResult<()> where C: Fn(&mut YcdValueType) -> PyResult<YcdValueType> {
+    pub(crate) fn replace_at<C>(&self, from: &mut YcdDict, cb: C, py: Python) -> PyResult<()>
+    where
+        C: Fn(&mut YcdValueType) -> PyResult<YcdValueType>,
+    {
         let multiple = self.0.ends_with("[]");
         let path: Split<char>;
         let s;
@@ -27,13 +32,16 @@ impl SubdocSpec {
         Self::replace_at_impl(path.peekable(), from, cb, multiple, py)?;
         Ok(())
     }
-    fn replace_at_impl<'s, C, P> (
-        mut path: Peekable<P>, mut from: &mut YcdDict,
-        cb: C, multiple: bool, py: Python
+    fn replace_at_impl<'s, C, P>(
+        mut path: Peekable<P>,
+        mut from: &mut YcdDict,
+        cb: C,
+        multiple: bool,
+        py: Python,
     ) -> PyResult<()>
-        where
-            C: Fn(&mut YcdValueType) -> PyResult<YcdValueType>,
-            P: Iterator<Item=&'s str>
+    where
+        C: Fn(&mut YcdValueType) -> PyResult<YcdValueType>,
+        P: Iterator<Item = &'s str>,
     {
         let mut run_at_least_once = false;
         while let Some(k) = path.next() {
@@ -91,18 +99,25 @@ impl SubdocSpec {
         if run_at_least_once {
             Ok(())
         } else {
-            Err(exceptions::PyValueError::new_err("Invalid path in subdocument patterns: Path must not be empty."))
+            Err(exceptions::PyValueError::new_err(
+                "Invalid path in subdocument patterns: Path must not be empty.",
+            ))
         }
     }
 }
 
-#[pyfunction(name="_test__subdoc_specs")]
-pub(crate) fn test_subdoc_specs(py: Python, path: String, typ: Py<PyType>, mut input: YcdDict, replace_with: YcdValueType) -> PyResult<(YcdDict, Py<PyType>)> {
+#[pyfunction(name = "_test__subdoc_specs")]
+pub(crate) fn test_subdoc_specs(
+    py: Python,
+    path: String,
+    typ: Py<PyType>,
+    mut input: YcdDict,
+    replace_with: YcdValueType,
+) -> PyResult<(YcdDict, Py<PyType>)> {
     let spec = SubdocSpec(path, typ);
     spec.replace_at(&mut input, |_| Ok(replace_with.clone()), py)?;
     Ok((input, spec.1))
 }
-
 
 /// Removes the $remove:: marker from all lists in doc.
 pub(crate) fn delete_remove_markers(py: Python, doc: YcdValueType) -> PyResult<YcdValueType> {
@@ -116,23 +131,27 @@ pub(crate) fn delete_remove_markers(py: Python, doc: YcdValueType) -> PyResult<Y
                     vmut.doc = ndoc;
                     Ok(Ycd(v))
                 }
-                _ => Err(exceptions::PyRuntimeError::new_err("Logic error while trying to remove delete markers."))
+                _ => Err(exceptions::PyRuntimeError::new_err(
+                    "Logic error while trying to remove delete markers.",
+                )),
             }
-
         }
         Dict(v) => {
-            match v.into_iter()
+            match v
+                .into_iter()
                 .filter(|(_k, v)| match v {
                     YString(vs) => vs != REMOVE,
-                    _ => true
+                    _ => true,
                 })
                 .map(|(k, v)| match delete_remove_markers(py, v) {
                     Ok(nv) => Ok((k, nv)),
-                    Err(e) => Err(e)
-                }).collect::<PyResult<YcdDict>>() {
-                    Ok(vf) => Ok(Dict(vf)),
-                    Err(e) => Err(e)
-                }
+                    Err(e) => Err(e),
+                })
+                .collect::<PyResult<YcdDict>>()
+            {
+                Ok(vf) => Ok(Dict(vf)),
+                Err(e) => Err(e),
+            }
         }
         List(v) => {
             let mut removes: Vec<String> = Vec::with_capacity(v.len());
@@ -143,24 +162,29 @@ pub(crate) fn delete_remove_markers(py: Python, doc: YcdValueType) -> PyResult<Y
                     }
                 }
             }
-            Ok(List(v.into_iter()
-                .filter(|v| match v {
-                    // Remove all $remove:: entries
-                    YString(vs) => !vs.starts_with(REMOVE_FROM_LIST_PREFIX) && !removes.contains(vs),
-                    _ => true
-                })
-                .collect::<Vec<YcdValueType>>()
+            Ok(List(
+                v.into_iter()
+                    .filter(|v| match v {
+                        // Remove all $remove:: entries
+                        YString(vs) => {
+                            !vs.starts_with(REMOVE_FROM_LIST_PREFIX) && !removes.contains(vs)
+                        }
+                        _ => true,
+                    })
+                    .collect::<Vec<YcdValueType>>(),
             ))
         }
         YString(v) => {
             if v == REMOVE {
                 debug_assert!(false, "Tried to remove a node at an unexpected position");
-                Err(InvalidRemoveError::new_err("Tried to remove a node at an unexpected position"))
+                Err(InvalidRemoveError::new_err(
+                    "Tried to remove a node at an unexpected position",
+                ))
             } else {
                 Ok(YString(v))
             }
         }
-        _ => Ok(doc)
+        _ => Ok(doc),
     }
 }
 
@@ -169,9 +193,13 @@ pub(crate) fn delete_remove_markers(py: Python, doc: YcdValueType) -> PyResult<Y
 //  :param target_node: Node to MERGE INTO
 //  :param source_node: Node to MERGE FROM
 //  :return: Merge result
-fn merge_documents_recursion(py: Python, target_node: YcdValueType, source_node: YcdValueType) -> PyResult<YcdValueType> {
+fn merge_documents_recursion(
+    py: Python,
+    target_node: YcdValueType,
+    source_node: YcdValueType,
+) -> PyResult<YcdValueType> {
     match &source_node {
-        Ycd(_) =>
+        Ycd(_) => {
             if let Ycd(t) = target_node {
                 if let Ycd(s) = source_node {
                     // IS YCD IN SOURCE AND TARGET
@@ -179,49 +207,65 @@ fn merge_documents_recursion(py: Python, target_node: YcdValueType, source_node:
                 }
                 panic!(); // This is impossible.
             }
-        Dict(_) =>
+        }
+        Dict(_) => {
             if let Dict(mut t) = target_node {
                 if let Dict(s) = source_node {
                     // IS DICT IN SOURCE AND TARGET
-                    t.extend(s.into_iter()
+                    t.extend(
+                        s.into_iter()
                             .map(|(k, v)| {
                                 if t.contains_key(&k) {
-                                    match merge_documents_recursion(py, t.get(&k).unwrap().clone(), v) {
+                                    match merge_documents_recursion(
+                                        py,
+                                        t.get(&k).unwrap().clone(),
+                                        v,
+                                    ) {
                                         Ok(ov) => Ok((k, ov)),
-                                        Err(e) => Err(e)
+                                        Err(e) => Err(e),
                                     }
                                 } else {
                                     Ok((k, v))
                                 }
                             })
-                            .collect::<PyResult<YcdDict>>()?);
+                            .collect::<PyResult<YcdDict>>()?,
+                    );
                     return Ok(Dict(t));
                 };
                 panic!(); // This is impossible.
             }
-        List(_) =>
+        }
+        List(_) => {
             if let List(t) = target_node {
                 if let List(s) = source_node {
-                    let removes: Vec<String> = t.iter()
+                    let removes: Vec<String> = t
+                        .iter()
                         .filter(|&v| match v {
                             YString(v) => v.starts_with(REMOVE_FROM_LIST_PREFIX),
-                            _ => false
+                            _ => false,
                         })
                         .map(|v| match v {
-                            YString(v) => v.splitn(2, REMOVE_FROM_LIST_PREFIX).last().unwrap().to_string(),
-                            _ => panic!("")
+                            YString(v) => v
+                                .splitn(2, REMOVE_FROM_LIST_PREFIX)
+                                .last()
+                                .unwrap()
+                                .to_string(),
+                            _ => panic!(""),
                         })
                         .collect();
-                    return Ok(List(t.into_iter().chain(s.into_iter())
-                        .filter(|v| match v {
-                            YString(v) => !removes.contains(v),
-                            _ => true
-                        })
-                        .collect::<YcdList>()
+                    return Ok(List(
+                        t.into_iter()
+                            .chain(s.into_iter())
+                            .filter(|v| match v {
+                                YString(v) => !removes.contains(v),
+                                _ => true,
+                            })
+                            .collect::<YcdList>(),
                     ));
                 }
                 panic!(); // This is impossible.
             }
+        }
         _ => {}
     }
     //     # IS SCALAR IN BOTH (or just in SOURCE)
@@ -232,19 +276,41 @@ fn merge_documents_recursion(py: Python, target_node: YcdValueType, source_node:
 /// :param target: Target document - this document will be changed,
 ///                it will contain the result of merging target into source.
 /// :param source: Source document to base merge on
-pub(crate) fn merge_documents(py: Python, target: PyYamlConfigDocument, source: PyYamlConfigDocument) -> PyResult<PyYamlConfigDocument> {
+pub(crate) fn merge_documents(
+    py: Python,
+    target: PyYamlConfigDocument,
+    source: PyYamlConfigDocument,
+) -> PyResult<PyYamlConfigDocument> {
     let targetrc = target.clone_ref(py);
     let mut target_doc = target.borrow_mut(py);
     let source_doc = source.borrow(py);
-    match merge_documents_recursion(py, Dict(source_doc.doc.clone()), Dict(take(&mut target_doc.doc)))? {
+    match merge_documents_recursion(
+        py,
+        Dict(source_doc.doc.clone()),
+        Dict(take(&mut target_doc.doc)),
+    )? {
         Dict(newdoc) => target_doc.doc = newdoc,
-        _ => return Err(exceptions::PyRuntimeError::new_err("Invalid state while merging documents."))
+        _ => {
+            return Err(exceptions::PyRuntimeError::new_err(
+                "Invalid state while merging documents.",
+            ))
+        }
     }
-    target_doc.already_loaded_docs.as_mut().unwrap().extend(source_doc.already_loaded_docs.as_ref().unwrap().iter().cloned());
+    target_doc.already_loaded_docs.as_mut().unwrap().extend(
+        source_doc
+            .already_loaded_docs
+            .as_ref()
+            .unwrap()
+            .iter()
+            .cloned(),
+    );
     let targets_before = target_doc.absolute_paths.clone();
-    target_doc.absolute_paths.extend(source_doc.absolute_paths.iter()
-        .filter(|&v| !targets_before.contains(v))
-        .map(|v| v.to_string())
+    target_doc.absolute_paths.extend(
+        source_doc
+            .absolute_paths
+            .iter()
+            .filter(|&v| !targets_before.contains(v))
+            .map(|v| v.to_string()),
     );
     Ok(targetrc)
 }
@@ -255,7 +321,11 @@ pub(crate) fn merge_documents(py: Python, target: PyYamlConfigDocument, source: 
 ///
 /// :param doc: Document to work on
 /// :param lookup_paths: Paths to the repositories, where referenced should be looked up.
-pub(crate) fn resolve_and_merge(py: Python, pydoc: PyYamlConfigDocument, lookup_paths: &[String]) -> PyResult<PyYamlConfigDocument> {
+pub(crate) fn resolve_and_merge(
+    py: Python,
+    pydoc: PyYamlConfigDocument,
+    lookup_paths: &[String],
+) -> PyResult<PyYamlConfigDocument> {
     let mut pydocrc = pydoc.clone_ref(py);
     let doc: PyRef<YamlConfigDocument> = pydoc.borrow(py);
     match doc.doc.get(REF) {
@@ -265,7 +335,7 @@ pub(crate) fn resolve_and_merge(py: Python, pydoc: PyYamlConfigDocument, lookup_
             }
         }
         Some(_) => {}
-        None => return Ok(pydocrc)
+        None => return Ok(pydocrc),
     };
     drop(doc);
     // Resolve references
@@ -282,14 +352,15 @@ pub(crate) fn resolve_and_merge(py: Python, pydoc: PyYamlConfigDocument, lookup_
         return if doc.absolute_paths.is_empty() {
             Err(ReferencedDocumentNotFound::new_err(format!(
                 "Referenced document {} not found. Requested by a document at {}",
-                doc.doc.get(REF).unwrap(), doc.absolute_paths[0]
+                doc.doc.get(REF).unwrap(),
+                doc.absolute_paths[0]
             )))
         } else {
             Err(ReferencedDocumentNotFound::new_err(format!(
                 "Referenced document {} not found.",
                 doc.doc.get(REF).unwrap()
             )))
-        }
+        };
     }
     // Resolve entire referenced docs
     let mut prev_referenced_doc = prev_referenced_doc.unwrap();
@@ -304,7 +375,13 @@ pub(crate) fn resolve_and_merge(py: Python, pydoc: PyYamlConfigDocument, lookup_
 /// Load a subdocument of a specific type. This will convert the dict at this position
 /// into a YamlConfigDocument with the matching type and perform resolve_and_merge_references
 /// on it.
-pub(crate) fn load_subdocument(py: Python, doc: &mut YcdValueType, args: [PyObject; 4], doc_clss: Py<PyType>, lookup_paths: &[String]) -> PyResult<YcdValueType> {
+pub(crate) fn load_subdocument(
+    py: Python,
+    doc: &mut YcdValueType,
+    args: [PyObject; 4],
+    doc_clss: Py<PyType>,
+    lookup_paths: &[String],
+) -> PyResult<YcdValueType> {
     let ycd: PyYamlConfigDocument;
     match doc {
         Ycd(v) => ycd = v.clone_ref(py),
@@ -319,25 +396,36 @@ pub(crate) fn load_subdocument(py: Python, doc: &mut YcdValueType, args: [PyObje
         },
         _ => return Err(exceptions::PyValueError::new_err(format!("Invalid path in subdocument: Invalid reference where a dict or document was expected: {:?}.", doc)))
     }
-    Ok(Ycd(YamlConfigDocument::resolve_and_merge_references(ycd.into(), py, lookup_paths.to_vec())?.into()))
+    Ok(Ycd(YamlConfigDocument::resolve_and_merge_references(
+        ycd.into(),
+        py,
+        lookup_paths.to_vec(),
+    )?
+    .into()))
 }
 
 /// Loads all subdocuments for doc, according to the specification.
 /// Calls load_subdocument for each entry, see for details.
-pub(crate) fn load_subdocuments(py: Python, doc: PyYamlConfigDocument, specs: Vec<SubdocSpec>, lookup_paths: &[String]) -> PyResult<()> {
+pub(crate) fn load_subdocuments(
+    py: Python,
+    doc: PyYamlConfigDocument,
+    specs: Vec<SubdocSpec>,
+    lookup_paths: &[String],
+) -> PyResult<()> {
     let mut doc_borrow = doc.borrow_mut(py);
     let args = [
         doc_borrow.path.clone().into_py(py),
-        doc.to_object(py), doc_borrow.already_loaded_docs.clone().into_py(py),
-        doc_borrow.absolute_paths.clone().into_py(py)
+        doc.to_object(py),
+        doc_borrow.already_loaded_docs.clone().into_py(py),
+        doc_borrow.absolute_paths.clone().into_py(py),
     ];
     for spec in specs {
         spec.replace_at(
             &mut doc_borrow.doc,
             |target| load_subdocument(py, target, args.clone(), spec.1.clone_ref(py), lookup_paths),
-            py
+            py,
         )?;
-    };
+    }
     Ok(())
 }
 
@@ -345,17 +433,25 @@ pub(crate) fn load_subdocuments(py: Python, doc: PyYamlConfigDocument, specs: Ve
 pub(crate) fn recursive_docs_to_dicts(input: YcdValueType, py: Python) -> PyResult<YcdValueType> {
     match input {
         Ycd(v) => recursive_docs_to_dicts(Dict(v.borrow(py).doc.clone()), py),
-        Dict(v) => match v.into_iter().map(|(k, v)| match recursive_docs_to_dicts(v, py) {
-            Ok(vv) => Ok((k, vv)),
-            Err(e) => Err(e)
-        }).collect::<PyResult<YcdDict>>() {
+        Dict(v) => match v
+            .into_iter()
+            .map(|(k, v)| match recursive_docs_to_dicts(v, py) {
+                Ok(vv) => Ok((k, vv)),
+                Err(e) => Err(e),
+            })
+            .collect::<PyResult<YcdDict>>()
+        {
             Ok(v) => Ok(Dict(v)),
-            Err(e) => Err(e)
-        }
-        List(v) => match v.into_iter().map(|v| recursive_docs_to_dicts(v, py)).collect::<PyResult<Vec<YcdValueType>>>() {
-            Ok(v) => Ok(List(v)),
-            Err(e) => Err(e)
+            Err(e) => Err(e),
         },
-        _ => Ok(input)
+        List(v) => match v
+            .into_iter()
+            .map(|v| recursive_docs_to_dicts(v, py))
+            .collect::<PyResult<Vec<YcdValueType>>>()
+        {
+            Ok(v) => Ok(List(v)),
+            Err(e) => Err(e),
+        },
+        _ => Ok(input),
     }
 }
