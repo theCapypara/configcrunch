@@ -10,7 +10,7 @@ with open(path.join(this_directory, 'README.rst'), encoding='utf-8') as f:
 
 setup(
     name='configcrunch',
-    version='1.0.3',
+    version='1.0.4',
     packages=find_packages(),
     package_data={"configcrunch": ["py.typed", "*.pyi"]},
     rust_extensions=[RustExtension(f"configcrunch._main", binding=Binding.PyO3)],
@@ -31,6 +31,7 @@ setup(
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
         'Programming Language :: Python :: 3.10',
+        'Programming Language :: Python :: 3.11',
     ],
     # rust extensions are not zip safe, just like C-extensions.
     zip_safe=False,
