@@ -11,7 +11,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: [ "3.6", "3.7", "3.8", "3.9", "3.10", "3.11" ]
+        python-version: [ "3.7", "3.8", "3.9", "3.10", "3.11" ]
     steps:
     - uses: actions/checkout@v3
     - name: Set up Python ${{ matrix.python-version }}
@@ -55,7 +55,7 @@ jobs:
     runs-on: ubuntu-latest
     name: Linux Wheels
     steps:
-      # For tags we assume the version in setup.py is correct!
+      # For tags we assume the version in pyproject.toml is correct!
       - name: Checkout
         uses: actions/checkout@v3
         with:
@@ -63,10 +63,11 @@ jobs:
       - name: Rewrite version for dev if not tag
         if: "!startsWith(github.ref, 'refs/tags/')"
         run: |
-          perl -i -pe "s/__version__\s*=\s*'(.*?)(\.rc.*|\.a.*|\.post.*)?'/__version__='\1.dev0+${GITHUB_SHA::8}'/" setup.py
+          sed -E -i -e "s/version\s*=\s*\"(.*)(\.rc.*|\.a.*|\.post.*)?\"/version = \"\1.dev0+${GITHUB_SHA::8}\"/;" pyproject.toml
       - name: Note version
         run: |
-          echo "PACKAGE_VERSION=$(python3 -- ./setup.py --version)" >> $GITHUB_ENV
+          PACKAGE_VERSION=$(grep "version" ./pyproject.toml | tr -d '"' | awk -F' ' '{print $3}')
+          echo "PACKAGE_VERSION=$PACKAGE_VERSION" >> $GITHUB_ENV
       - name: Set up Python 3.8
         uses: actions/setup-python@v4
         with:
@@ -101,14 +102,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
       - name: Rewrite version for dev if not tag
-        if: "!startsWith(github.ref, 'refs/tags/')"
+        if: "!startsWith(github.ref, 'refs/tags/') && matrix.os == 'macos-11'"
         shell: bash
         run: |
-          perl -i -pe "s/__version__\s*=\s*'(.*?)(\.rc.*|\.a.*|\.post.*)?'/__version__='\1.dev0+${GITHUB_SHA::8}'/" setup.py
+          sed -E -i '' -e "s/version\s*=\s*\"(.*)(\.rc.*|\.a.*|\.post.*)?\"/version = \"\1.dev0+${GITHUB_SHA::8}\"/;" pyproject.toml
+      - name: Rewrite version for dev if not tag
+        if: "!startsWith(github.ref, 'refs/tags/') && matrix.os != 'macos-11'"
+        shell: bash
+        run: |
+          sed -E -i -e "s/version\s*=\s*\"(.*)(\.rc.*|\.a.*|\.post.*)?\"/version = \"\1.dev0+${GITHUB_SHA::8}\"/;" pyproject.toml
       - name: Note version
         shell: bash
         run: |
-          echo "PACKAGE_VERSION=$(python3 -- ./setup.py --version)" >> $GITHUB_ENV
+          PACKAGE_VERSION=$(grep "version" ./pyproject.toml | tr -d '"' | awk -F' ' '{print $3}')
+          echo "PACKAGE_VERSION=$PACKAGE_VERSION" >> $GITHUB_ENV
       - name: Setup Rust
         uses: actions-rs/toolchain@v1
         with:
@@ -122,11 +129,11 @@ jobs:
           architecture: ${{ matrix.arch }}
       - name: Upgrade pip, install dev dependencies
         run: |
-          python -m pip install --upgrade pip wheel
+          python -m pip install --upgrade pip wheel build
           python -m pip install -r requirements.txt
       - name: Build Python wheels
         run: |
-          python setup.py bdist_wheel
+          python -m build
       - name: Upload wheels
         uses: actions/upload-artifact@v3
         with:
