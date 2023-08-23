@@ -1,6 +1,5 @@
 [build-system]
-# Waiting for: https://github.com/PyO3/setuptools-rust/pull/355
-requires = ["setuptools", "setuptools-rust @ git+https://github.com/PyO3/setuptools-rust.git@release-1.7.0"]
+requires = ["setuptools", "setuptools-rust"]
 build-backend = "setuptools.build_meta"
 
 [project]
