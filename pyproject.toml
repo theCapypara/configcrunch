@@ -1,2 +1,39 @@
 [build-system]
-requires = ["setuptools", "wheel", "setuptools-rust"]
+requires = ["setuptools", "setuptools-rust"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "configcrunch"
+version = "1.0.4"
+description = "Configuration parser based on YAML-Files with support for variables, overlaying and hierarchies"
+readme = "README.rst"
+requires-python = ">=3.7"
+license = {file = "LICENSE"}
+authors = [
+    {name = "Marco Köpcke", email = "hello@capypara.de"}
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Programming Language :: Python",
+    "Programming Language :: Rust",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+]
+dependencies = [
+    "schema >= 0.7"
+]
+
+[project.urls]
+Repository = "https://github.com/theCapypara/configcrunch"
+Documentation = "https://configcrunch.readthedocs.io"
+
+[tool.setuptools.package-dir]
+configcrunch = "configcrunch"
+
+[[tool.setuptools-rust.ext-modules]]
+target = "configcrunch._main"
