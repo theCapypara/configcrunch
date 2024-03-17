@@ -10,7 +10,8 @@ use std::env::current_dir;
 use std::fs::File;
 use std::path::PathBuf;
 
-#[pyfunction(args = "*")]
+#[pyfunction]
+#[pyo3(signature = (doc_type, *args))]
 /// Loads (one or) multiple YAML files (paths specified by *args) into the
 /// given YamlConfigDocument model.
 /// The documents are merged as if the rightmost document "$ref"'ed the document left to it, etc.

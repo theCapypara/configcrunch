@@ -9,7 +9,6 @@ use crate::{
 pub(crate) use pyo3::exceptions;
 pub(crate) use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList, PyTuple, PyType};
-use pyo3::PyIterProtocol;
 use std::collections::HashMap;
 use std::mem::take;
 
@@ -41,12 +40,13 @@ impl YamlConfigDocument {
     ///                        If this is not from a repo, leave at None.
     /// :param parent:         Parent document
     #[new]
-    #[args(
-        path = "None",
-        parent = "None",
-        already_loaded_docs = "None",
-        absolute_paths = "None"
-    )]
+    #[pyo3(signature=(
+        document,
+        path = None,
+        parent_doc = None,
+        already_loaded_docs = None,
+        absolute_paths = None
+    ))]
     pub(crate) fn new(
         document: YcdDict,
         path: Option<String>,
@@ -406,6 +406,12 @@ impl YamlConfigDocument {
         Ok(())
     }
 
+    fn __iter__(slf: PyRef<Self>) -> PyResult<PyObject> {
+        slf.doc(slf.py())?
+            .getattr(slf.py(), "__iter__")?
+            .call0(slf.py())
+    }
+
     fn items(slf: Py<Self>, py: Python) -> PyResult<PyObject> {
         slf.getattr(py, "doc")
     }
@@ -441,7 +447,7 @@ impl YamlConfigDocument {
             None => slf.borrow().doc.get(key).to_object(slf.py()),
             Some(f) => f
                 .extract::<&PyDict>(slf.py())?
-                .get_item(key)
+                .get_item(key)?
                 .to_object(slf.py()),
         })
     }
@@ -538,15 +544,6 @@ impl YamlConfigDocument {
     }
 }
 
-#[pyproto]
-impl PyIterProtocol for YamlConfigDocument {
-    fn __iter__(slf: PyRef<Self>) -> PyResult<PyObject> {
-        slf.doc(slf.py())?
-            .getattr(slf.py(), "__iter__")?
-            .call0(slf.py())
-    }
-}
-
 #[pyclass(module = "_main")]
 struct InternalAccessContext(PyYamlConfigDocument);
 
@@ -611,7 +608,7 @@ impl DocReference {
     /// according to it's schema.
     pub(crate) fn validate(slf: Py<Self>, data: &PyAny, py: Python) -> PyResult<bool> {
         let self_: PyRef<Self> = slf.borrow(py);
-        if data.is_instance::<PyDict>()? {
+        if data.is_instance_of::<PyDict>() {
             let data: &PyDict = data.extract()?;
             // If the reference still contains the $ref keyword, it is treated as an
             // unmerged reference and not validated further.
