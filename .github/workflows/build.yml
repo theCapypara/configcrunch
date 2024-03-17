@@ -2,7 +2,7 @@
 # Deploys to PyPi on new tags.
 name: Build, test and publish
 
-on: [push, pull_request]
+on: [ push, pull_request ]
 
 jobs:
   test:
@@ -11,31 +11,30 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: [ "3.7", "3.8", "3.9", "3.10", "3.11" , "3.12"]
+        python-version: [ "3.7", "3.8", "3.9", "3.10", "3.11" , "3.12" ]
     steps:
-    - uses: actions/checkout@v4
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v5
-      with:
-        python-version: ${{ matrix.python-version }}
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install tox tox-gh-actions
-    - uses: actions-rs/toolchain@v1
-      with:
-        toolchain: nightly
-        override: true
-    - name: Test with tox
-      run: tox
-      env:
-        RUSTUP_TOOLCHAIN: nightly
-    - name: Upload Test Results
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: Pytest Test Results (Python ${{ matrix.python-version }})
-        path: pytest.xml
+      - uses: actions/checkout@v4
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install tox tox-gh-actions
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+      - name: Test with tox
+        run: tox
+        env:
+          RUSTUP_TOOLCHAIN: stable
+      - name: Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Pytest Test Results (Python ${{ matrix.python-version }})
+          path: pytest.xml
   publish-test-results:
     name: "Publish Unit Tests Results"
     needs: test
@@ -119,10 +118,9 @@ jobs:
           PACKAGE_VERSION=$(grep "version" ./pyproject.toml | tr -d '"' | awk -F' ' '{print $3}')
           echo "PACKAGE_VERSION=$PACKAGE_VERSION" >> $GITHUB_ENV
       - name: Setup Rust
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: nightly
-          override: true
+          toolchain: stable
           target: "${{ matrix.os == 'windows-2019' && 'i686-pc-windows-msvc' || 'x86_64-apple-darwin' }}"
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -144,8 +142,8 @@ jobs:
   deploy:
     if: startsWith(github.ref, 'refs/tags/')
     needs:
-    - build_linux
-    - build_macos_windows
+      - build_linux
+      - build_macos_windows
     runs-on: ubuntu-latest
     name: Deploy wheels to PyPI
     steps:
