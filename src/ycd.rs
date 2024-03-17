@@ -627,7 +627,7 @@ impl DocReference {
         }
 
         let self_type = self_.referenced_type.extract::<&PyType>(py)?;
-        if self_type.is_instance(data)? {
+        if data.is_instance(self_type)? {
             let data_doc: &PyCell<YamlConfigDocument> = data.extract()?;
             if data_doc.borrow().doc.contains_key(REF) {
                 return Ok(true);
