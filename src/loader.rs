@@ -98,11 +98,9 @@ pub(crate) fn absolute_paths(
     ref_path_in_repo: &str,
     lookup_paths: &[String],
 ) -> PyResult<Vec<String>> {
-    let ref_path_in_repo_cln: &str;
-    match ref_path_in_repo.strip_prefix('/') {
-        None => ref_path_in_repo_cln = ref_path_in_repo,
-        Some(p) => ref_path_in_repo_cln = p,
-    }
+    let ref_path_in_repo_cln = ref_path_in_repo
+        .strip_prefix('/')
+        .unwrap_or(ref_path_in_repo);
     load_repos(lookup_paths)
         .iter()
         .map(|absolute_repo_path| {
@@ -178,7 +176,7 @@ pub(crate) fn dict_to_doc_cls(
     if doc_dict.contains_key(header) {
         let new_abs_paths: Vec<String> = [absolute_path]
             .into_iter()
-            .chain(parent_ref.absolute_paths.clone().into_iter())
+            .chain(parent_ref.absolute_paths.clone())
             .collect();
         return construct_new_ycd(
             py,

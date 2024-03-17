@@ -255,7 +255,7 @@ fn merge_documents_recursion(
                         .collect();
                     return Ok(List(
                         t.into_iter()
-                            .chain(s.into_iter())
+                            .chain(s)
                             .filter(|v| match v {
                                 YString(v) => !removes.contains(v),
                                 _ => true,
@@ -382,10 +382,9 @@ pub(crate) fn load_subdocument(
     doc_clss: Py<PyType>,
     lookup_paths: &[String],
 ) -> PyResult<YcdValueType> {
-    let ycd: PyYamlConfigDocument;
-    match doc {
-        Ycd(v) => ycd = v.clone_ref(py),
-        Dict(d) => ycd = construct_new_ycd(py, doc_clss.extract(py)?, [&[
+    let ycd = match doc {
+        Ycd(v) => v.clone_ref(py),
+        Dict(d) => construct_new_ycd(py, doc_clss.extract(py)?, [&[
                 doc_clss.to_object(py),
                 d.to_object(py),
             ][..], &args[..]].concat())?,
@@ -395,7 +394,7 @@ pub(crate) fn load_subdocument(
             Err(exceptions::PyValueError::new_err(format!("Invalid path in subdocument: Invalid reference where a dict or document was expected: {:?}.", s)))
         },
         _ => return Err(exceptions::PyValueError::new_err(format!("Invalid path in subdocument: Invalid reference where a dict or document was expected: {:?}.", doc)))
-    }
+    };
     Ok(Ycd(YamlConfigDocument::resolve_and_merge_references(
         ycd.into(),
         py,
