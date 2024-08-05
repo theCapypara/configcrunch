@@ -1,9 +1,12 @@
+use pyo3::exceptions;
+use pyo3::prelude::*;
+
 use crate::conv::YcdValueType::{Dict, Int, List, YString, Ycd};
 use crate::conv::{PyYamlConfigDocument, YcdValueType};
 use crate::minijinja::TemplateRenderer;
+use crate::pyutil::ClonePyRef;
 use crate::variables::DocumentTraverserCallbackType::{CurrentDoc, SubDoc};
 use crate::{VariableProcessingError, FORCE_STRING};
-use pyo3::{exceptions, PyAny, PyObject, PyResult, Python, ToPyObject};
 
 struct DocumentTraverser;
 
@@ -98,7 +101,7 @@ impl DocumentTraverser {
                             in_str, document.borrow(py).absolute_paths[0]
                         ));
                         let err_obj: PyObject = err.to_object(py);
-                        let err_pyany: &PyAny = err_obj.extract(py)?;
+                        let err_pyany: Bound<PyAny> = err_obj.extract(py)?;
                         err_pyany.setattr("__cause__", orig_err.to_object(py))?;
                         Err(err)
                     }
@@ -142,7 +145,7 @@ pub(crate) fn process_variables(py: Python, ycd: PyYamlConfigDocument) -> PyResu
     // TODO: The algorithm isn't very smart. It just runs over the
     //       document, replacing variables, until no replacements have been done.
     //       This should be improved in future versions.
-    let mut doc = Dict(ycd.borrow(py).doc.clone());
+    let mut doc = Dict(ycd.borrow(py).doc.clone_pyref(py));
     DocumentTraverser::run_subdoc_callback(py, &mut doc)?;
     doc = Dict(doc.unwrap_dict());
     loop {
@@ -151,7 +154,7 @@ pub(crate) fn process_variables(py: Python, ycd: PyYamlConfigDocument) -> PyResu
         if !changed {
             break;
         }
-        doc = Dict(ycd.borrow_mut(py).doc.clone());
+        doc = Dict(ycd.borrow_mut(py).doc.clone_pyref(py));
     }
     Ok(())
 }

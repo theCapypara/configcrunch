@@ -8,9 +8,9 @@ version = "1.0.6"
 description = "Configuration parser based on YAML-Files with support for variables, overlaying and hierarchies"
 readme = "README.rst"
 requires-python = ">=3.7"
-license = {file = "LICENSE"}
+license = { file = "LICENSE" }
 authors = [
-    {name = "Marco Köpcke", email = "hello@capypara.de"}
+    { name = "Marco Köpcke", email = "hello@capypara.de" }
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -24,6 +24,7 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
 ]
 dependencies = [
     "schema >= 0.7"

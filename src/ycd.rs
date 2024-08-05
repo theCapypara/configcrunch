@@ -1,22 +1,24 @@
-use crate::conv::YcdValueType::Dict;
-use crate::conv::{PyYamlConfigDocument, YcdDict, YcdValueType};
-use crate::variables::{process_variables, process_variables_for};
-use crate::{
-    construct_new_ycd, delete_remove_markers, load_subdocuments, load_yaml_file,
-    recursive_docs_to_dicts, resolve_and_merge, CircularDependencyError, InvalidDocumentError,
-    InvalidHeaderError, SchemaError, REF,
-};
+use std::collections::HashMap;
+use std::mem::take;
+
 pub(crate) use pyo3::exceptions;
 pub(crate) use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList, PyTuple, PyType};
-use std::collections::HashMap;
-use std::mem::take;
+
+use crate::{
+    CircularDependencyError, construct_new_ycd, delete_remove_markers, InvalidDocumentError,
+    InvalidHeaderError, load_subdocuments, load_yaml_file, recursive_docs_to_dicts,
+    REF, resolve_and_merge, SchemaError,
+};
+use crate::conv::{PyYamlConfigDocument, YcdDict, YcdValueType};
+use crate::pyutil::ClonePyRef;
+use crate::variables::{process_variables, process_variables_for};
 
 /// A document represented by a dictionary, that can be validated,
 /// can contain references to other (sub-)documents, which can be resolved,
 /// and variables that can be parsed.
 #[pyclass(module = "_main", subclass)]
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub(crate) struct YamlConfigDocument {
     pub(crate) doc: YcdDict,
     /// The frozen Python representation of doc
@@ -41,11 +43,11 @@ impl YamlConfigDocument {
     /// :param parent:         Parent document
     #[new]
     #[pyo3(signature=(
-        document,
-        path = None,
-        parent_doc = None,
-        already_loaded_docs = None,
-        absolute_paths = None
+    document,
+    path = None,
+    parent_doc = None,
+    already_loaded_docs = None,
+    absolute_paths = None
     ))]
     pub(crate) fn new(
         document: YcdDict,
@@ -54,14 +56,8 @@ impl YamlConfigDocument {
         already_loaded_docs: Option<Vec<String>>,
         absolute_paths: Option<Vec<String>>,
     ) -> PyResult<Self> {
-        let already_loaded_docs = match already_loaded_docs {
-            None => vec![],
-            Some(x) => x,
-        };
-        let absolute_paths = match absolute_paths {
-            None => vec![],
-            Some(x) => x,
-        };
+        let already_loaded_docs = already_loaded_docs.unwrap_or_default();
+        let absolute_paths = absolute_paths.unwrap_or_default();
 
         let mut slf = Self {
             doc: document,
@@ -84,13 +80,13 @@ impl YamlConfigDocument {
     /// validated by the schema method.
     #[classmethod]
     pub(crate) fn from_yaml(
-        cls: &PyType,
+        cls: Py<PyType>,
         py: Python,
         path_to_yaml: String,
     ) -> PyResult<PyYamlConfigDocument> {
         let mut entire_document = load_yaml_file(&path_to_yaml)?;
-        let header = cls.getattr("header")?.call0()?;
-        let header: &str = header.extract()?;
+        let header = cls.getattr(py, "header")?.call0(py)?;
+        let header: &str = header.extract(py)?;
         if !entire_document.contains_key(header) {
             return Err(InvalidHeaderError::new_err(format!(
                 "The document does not have a valid header. Expected was: {}",
@@ -101,9 +97,9 @@ impl YamlConfigDocument {
         match content {
             YcdValueType::Dict(c) => construct_new_ycd(
                 py,
-                cls,
+                &cls,
                 [
-                    cls.into_py(py),
+                    cls.clone_ref(py).into_py(py),
                     c.into_py(py),
                     py.None(),
                     py.None(),
@@ -120,13 +116,13 @@ impl YamlConfigDocument {
 
     #[classmethod]
     pub(crate) fn from_dict(
-        cls: &PyType,
+        cls: Bound<PyType>,
         py: Python,
         dict: PyObject,
     ) -> PyResult<PyYamlConfigDocument> {
         construct_new_ycd(
             py,
-            cls,
+            &cls.as_unbound().clone_ref(py),
             [
                 cls.into_py(py),
                 dict,
@@ -140,7 +136,7 @@ impl YamlConfigDocument {
 
     /// Header that YAML-documents must contain.
     #[classmethod]
-    pub(crate) fn header(_cls: &PyType) -> PyResult<String> {
+    pub(crate) fn header(_cls: Bound<PyType>) -> PyResult<String> {
         debug_assert!(
             false,
             "The class method header must be implemented. Do not call the parent method."
@@ -152,7 +148,7 @@ impl YamlConfigDocument {
 
     /// Schema that the document should be validated against.
     #[classmethod]
-    pub(crate) fn schema(_cls: &PyType) -> PyResult<PyObject> {
+    pub(crate) fn schema(_cls: Bound<PyType>) -> PyResult<PyObject> {
         debug_assert!(
             false,
             "The class method schema must be implemented. Do not call the parent method."
@@ -177,7 +173,7 @@ impl YamlConfigDocument {
     ///     on_list = ("a/c[]": ...)
     ///     on_dict = ("a/d[]": ...)
     #[classmethod]
-    fn subdocuments(_cls: &PyType) -> PyResult<PyObject> {
+    fn subdocuments(_cls: Bound<PyType>) -> PyResult<PyObject> {
         debug_assert!(
             false,
             "The class method subdocuments must be implemented. Do not call the parent method."
@@ -188,14 +184,14 @@ impl YamlConfigDocument {
     }
 
     /// Validates the document against the Schema.
-    pub(crate) fn validate(slf: &PyCell<Self>, py: Python) -> PyResult<bool> {
+    pub(crate) fn validate(slf: &Bound<Self>, py: Python) -> PyResult<bool> {
         if slf.borrow().frozen.is_some() {
             return Err(exceptions::PyRuntimeError::new_err(
                 "Document is already frozen.",
             ));
         }
         let self_: PyRef<Self> = slf.borrow();
-        let args = PyTuple::new(py, [self_.doc.to_object(py)]);
+        let args = PyTuple::new_bound(py, [self_.doc.to_object(py)]);
         slf.getattr("schema")?
             .call0()?
             .getattr("validate")?
@@ -226,7 +222,7 @@ impl YamlConfigDocument {
 
         if let Ok(cb) = slf.getattr(py, "_initialize_data_before_merge") {
             let mut mref = slf.borrow_mut(py);
-            let args = PyTuple::new(py, [take(&mut mref.doc)]);
+            let args = PyTuple::new_bound(py, [take(&mut mref.doc)]);
             drop(mref);
             let tmp = cb.call1(py, args)?.extract(py)?;
             let mut mref = slf.borrow_mut(py);
@@ -238,7 +234,7 @@ impl YamlConfigDocument {
 
         if let Ok(cb) = slf.getattr(py, "_initialize_data_after_merge") {
             let mut mref = slf.borrow_mut(py);
-            let args = PyTuple::new(py, [take(&mut mref.doc).into_py(py)]);
+            let args = PyTuple::new_bound(py, [take(&mut mref.doc).into_py(py)]);
             drop(mref);
             let tmp = cb.call1(py, args)?.extract(py)?;
             let mut mref = slf.borrow_mut(py);
@@ -251,8 +247,8 @@ impl YamlConfigDocument {
 
         let mut self_: PyRefMut<Self> = slf.borrow_mut(py);
         let d = take(&mut self_.doc);
-        match delete_remove_markers(py, Dict(d))? {
-            Dict(dd) => self_.doc = dd,
+        match delete_remove_markers(py, YcdValueType::Dict(d))? {
+            YcdValueType::Dict(dd) => self_.doc = dd,
             _ => {
                 return Err(exceptions::PyRuntimeError::new_err(
                     "Internal algorithm failure.",
@@ -274,7 +270,7 @@ impl YamlConfigDocument {
         process_variables(py, slf.clone_ref(py).into())?;
         if let Ok(cb) = slf.getattr(py, "_initialize_data_after_variables") {
             let mut mref = slf.borrow_mut(py);
-            let args = PyTuple::new(py, take(&mut mref.doc));
+            let args = PyTuple::new_bound(py, take(&mut mref.doc));
             drop(mref);
             let tmp = cb.call1(py, args)?.extract(py)?;
             let mut mref = slf.borrow_mut(py);
@@ -384,14 +380,14 @@ impl YamlConfigDocument {
     }
 
     fn __getitem__(slf: Py<Self>, py: Python, key: &str) -> PyResult<PyObject> {
-        let args = PyTuple::new(py, [key]);
+        let args = PyTuple::new_bound(py, [key]);
         slf.getattr(py, "doc")?
             .getattr(py, "__getitem__")?
             .call1(py, args)
     }
 
     fn __setitem__(slf: Py<Self>, py: Python, key: String, value: YcdValueType) -> PyResult<()> {
-        let args = PyTuple::new(py, [key.to_object(py), value.to_object(py)]);
+        let args = PyTuple::new_bound(py, [key.to_object(py), value.to_object(py)]);
         slf.getattr(py, "doc")?
             .getattr(py, "__setitem__")?
             .call1(py, args)?;
@@ -399,7 +395,7 @@ impl YamlConfigDocument {
     }
 
     fn __delitem__(slf: Py<Self>, key: &str, py: Python) -> PyResult<()> {
-        let args = PyTuple::new(py, [key]);
+        let args = PyTuple::new_bound(py, [key]);
         slf.getattr(py, "doc")?
             .getattr(py, "__detitem__")?
             .call1(py, args)?;
@@ -424,15 +420,15 @@ impl YamlConfigDocument {
                 let mut dict: YcdDict = HashMap::new();
                 dict.insert(
                     slf.getattr(py, "header")?.call0(py)?.extract(py)?,
-                    Dict(self_.doc.clone()),
+                    YcdValueType::Dict(self_.doc.clone_pyref(py)),
                 );
-                Ok(recursive_docs_to_dicts(Dict(dict), py)?.into_py(py))
+                Ok(recursive_docs_to_dicts(YcdValueType::Dict(dict), py)?.into_py(py))
             }
             Some(_) => {
                 // We are doing this from Python code for better readability
-                let args = PyTuple::new(py, [slf.clone_ref(py)]);
+                let args = PyTuple::new_bound(py, [slf.clone_ref(py)]);
                 Ok(py
-                    .import("configcrunch._util")?
+                    .import_bound("configcrunch._util")?
                     .getattr("frozen_ycd_to_dict")?
                     .call1(args)?
                     .into_py(py))
@@ -442,11 +438,11 @@ impl YamlConfigDocument {
 
     /// If not frozen: Returns a COPY of the key at the specified location
     /// Otherwise returns it from the frozen `self.doc`, it may or may not be a copy.
-    fn internal_get(slf: &PyCell<Self>, key: &str) -> PyResult<PyObject> {
+    fn internal_get(slf: &Bound<Self>, key: &str) -> PyResult<PyObject> {
         Ok(match &slf.borrow().frozen {
             None => slf.borrow().doc.get(key).to_object(slf.py()),
             Some(f) => f
-                .extract::<&PyDict>(slf.py())?
+                .extract::<Bound<PyDict>>(slf.py())?
                 .get_item(key)?
                 .to_object(slf.py()),
         })
@@ -454,11 +450,11 @@ impl YamlConfigDocument {
 
     /// If not frozen: Sets the value at the specified location in the internal document.
     /// Otherwise sets it it in the frozen `self.doc`.
-    fn internal_set(slf: &PyCell<Self>, key: String, val: YcdValueType) -> PyResult<()> {
+    fn internal_set(slf: &Bound<Self>, key: String, val: YcdValueType) -> PyResult<()> {
         match &slf.borrow().frozen {
             None => { /*Drop borrow*/ }
             Some(f) => {
-                f.extract::<&PyDict>(slf.py())?
+                f.extract::<Bound<PyDict>>(slf.py())?
                     .set_item(key, val.to_object(slf.py()))?;
                 return Ok(());
             }
@@ -470,20 +466,20 @@ impl YamlConfigDocument {
 
     /// If not frozen: Returns whether the internal document contains `key`.
     /// Otherwise returns whether the frozen `self.doc` contains `key`.
-    fn internal_contains(slf: &PyCell<Self>, key: &str) -> PyResult<bool> {
+    fn internal_contains(slf: &Bound<Self>, key: &str) -> PyResult<bool> {
         Ok(match &slf.borrow().frozen {
             None => slf.borrow().doc.contains_key(key),
-            Some(f) => f.extract::<&PyDict>(slf.py())?.contains(key)?,
+            Some(f) => f.extract::<Bound<PyDict>>(slf.py())?.contains(key)?,
         })
     }
 
     /// If not frozen: Deletes a value from the internal document at `key`.
     /// Otherwise deletes a value from `self.doc` at `key`.
-    fn internal_delete(slf: &PyCell<Self>, key: &str) -> PyResult<()> {
+    fn internal_delete(slf: &Bound<Self>, key: &str) -> PyResult<()> {
         match &slf.borrow().frozen {
             None => { /* Drop borrow*/ }
             Some(f) => {
-                f.extract::<&PyDict>(slf.py())?.del_item(key).ok();
+                f.extract::<Bound<PyDict>>(slf.py())?.del_item(key).ok();
                 return Ok(());
             }
         };
@@ -517,15 +513,15 @@ impl YamlConfigDocument {
 
     /// Loads bound variable helper methods to this instance for use in variable processing.
     pub(crate) fn collect_bound_variable_helpers<'py>(
-        slf: &'py PyCell<Self>,
+        slf: Bound<'py, Self>,
         py: Python<'py>,
-    ) -> PyResult<&'py PyCell<Self>> {
-        let inspect = py.import("inspect")?;
+    ) -> PyResult<Bound<'py, Self>> {
+        let inspect = py.import_bound("inspect")?;
         let ismethod = inspect.getattr("ismethod")?;
-        let args = PyTuple::new(py, [slf.to_object(py), ismethod.to_object(py)]);
-        let members: &PyList = inspect.getattr("getmembers")?.call1(args)?.extract()?;
+        let args = PyTuple::new_bound(py, [slf.to_object(py), ismethod.to_object(py)]);
+        let members: Bound<PyList> = inspect.getattr("getmembers")?.call1(args)?.extract()?;
         for tpl in members.iter() {
-            let tpl: &PyTuple = tpl.extract()?;
+            let tpl: Bound<PyTuple> = tpl.extract()?;
             let itm = tpl.get_item(1)?;
             let name: String = tpl.get_item(0)?.extract()?;
             if itm.hasattr("__is_variable_helper")? {
@@ -553,6 +549,7 @@ impl InternalAccessContext {
         YamlConfigDocument::freeze(self.0.clone_ref(py).into(), py)
     }
 
+    #[pyo3(signature = (_exc_type=None, _exc_value=None, _traceback=None))]
     fn __exit__(
         &mut self,
         py: Python,
@@ -579,7 +576,6 @@ impl InternalAccessContext {
 }
 
 #[pyclass(module = "_main")]
-#[derive(Clone)]
 pub(crate) struct DocReference {
     referenced_type: Py<PyType>, // Type[YamlConfigDocument]
 }
@@ -598,7 +594,7 @@ impl DocReference {
     fn __str__(&self, py: Python) -> PyResult<String> {
         let typename = self
             .referenced_type
-            .extract::<&PyType>(py)?
+            .extract::<Bound<PyType>>(py)?
             .getattr("__name__")?;
         Ok(format!("DocReference<{:?}>", typename))
     }
@@ -606,10 +602,10 @@ impl DocReference {
     /// Validates. If the subdocument still contains $ref, it is not validated further,
     /// please call resolve_and_merge_references. Otherwise the sub-document is expected to match
     /// according to it's schema.
-    pub(crate) fn validate(slf: Py<Self>, data: &PyAny, py: Python) -> PyResult<bool> {
+    pub(crate) fn validate(slf: Py<Self>, data: Bound<PyAny>, py: Python) -> PyResult<bool> {
         let self_: PyRef<Self> = slf.borrow(py);
         if data.is_instance_of::<PyDict>() {
-            let data: &PyDict = data.extract()?;
+            let data: Bound<PyDict> = data.extract()?;
             // If the reference still contains the $ref keyword, it is treated as an
             // unmerged reference and not validated further.
             if data.contains(REF)? {
@@ -619,16 +615,16 @@ impl DocReference {
                 "Expected an instance of {:?} while validating, got {:?}: {:?}",
                 self_
                     .referenced_type
-                    .extract::<&PyType>(py)?
+                    .extract::<Bound<PyType>>(py)?
                     .getattr("__name__")?,
                 data.getattr("__class__")?.getattr("__name__")?,
                 data
             )));
         }
 
-        let self_type = self_.referenced_type.extract::<&PyType>(py)?;
-        if data.is_instance(self_type)? {
-            let data_doc: &PyCell<YamlConfigDocument> = data.extract()?;
+        let self_type = self_.referenced_type.extract::<Bound<PyType>>(py)?;
+        if data.is_instance(&self_type)? {
+            let data_doc: Bound<YamlConfigDocument> = data.extract()?;
             if data_doc.borrow().doc.contains_key(REF) {
                 return Ok(true);
             }
@@ -638,7 +634,7 @@ impl DocReference {
             "Expected an instance of {:?} while validating, got {:?}: {:?}",
             self_
                 .referenced_type
-                .extract::<&PyType>(py)?
+                .extract::<Bound<PyType>>(py)?
                 .getattr("__name__")?,
             data.getattr("__class__")?.getattr("__name__")?,
             data

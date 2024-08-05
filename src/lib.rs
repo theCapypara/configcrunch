@@ -1,5 +1,10 @@
+use pyo3::{PyResult, Python};
 use pyo3::prelude::*;
-use pyo3::{wrap_pyfunction, PyResult, Python};
+
+use crate::errors::*;
+use crate::loader::*;
+use crate::merger::*;
+use crate::ycd::*;
 
 pub(crate) const REF: &str = "$ref";
 pub(crate) const REMOVE: &str = "$remove";
@@ -11,38 +16,43 @@ pub(crate) mod errors;
 pub(crate) mod loader;
 pub(crate) mod merger;
 mod minijinja;
+mod pyutil;
 pub(crate) mod variables;
 pub(crate) mod ycd;
 
-use crate::errors::*;
-use crate::loader::*;
-use crate::merger::*;
-use crate::ycd::*;
-
 #[pymodule]
-fn _main(py: Python<'_>, m: &PyModule) -> PyResult<()> {
-    m.add("ConfigcrunchError", py.get_type::<ConfigcrunchError>())?;
+fn _main(py: Python<'_>, m: Bound<PyModule>) -> PyResult<()> {
+    m.add(
+        "ConfigcrunchError",
+        py.get_type_bound::<ConfigcrunchError>(),
+    )?;
     m.add(
         "ReferencedDocumentNotFound",
-        py.get_type::<ReferencedDocumentNotFound>(),
+        py.get_type_bound::<ReferencedDocumentNotFound>(),
     )?;
     m.add(
         "CircularDependencyError",
-        py.get_type::<CircularDependencyError>(),
+        py.get_type_bound::<CircularDependencyError>(),
     )?;
     m.add(
         "VariableProcessingError",
-        py.get_type::<VariableProcessingError>(),
+        py.get_type_bound::<VariableProcessingError>(),
     )?;
     m.add(
         "InvalidDocumentError",
-        py.get_type::<InvalidDocumentError>(),
+        py.get_type_bound::<InvalidDocumentError>(),
     )?;
-    m.add("InvalidHeaderError", py.get_type::<InvalidHeaderError>())?;
-    m.add("InvalidRemoveError", py.get_type::<InvalidRemoveError>())?;
+    m.add(
+        "InvalidHeaderError",
+        py.get_type_bound::<InvalidHeaderError>(),
+    )?;
+    m.add(
+        "InvalidRemoveError",
+        py.get_type_bound::<InvalidRemoveError>(),
+    )?;
 
-    m.add_function(wrap_pyfunction!(load_multiple_yml, m)?)?;
-    m.add_function(wrap_pyfunction!(test_subdoc_specs, m)?)?;
+    m.add_function(wrap_pyfunction_bound!(load_multiple_yml, &m)?)?;
+    m.add_function(wrap_pyfunction_bound!(test_subdoc_specs, &m)?)?;
 
     m.add_class::<YamlConfigDocument>()?;
     m.add_class::<DocReference>()?;

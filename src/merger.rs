@@ -1,16 +1,19 @@
-use crate::conv::YcdValueType::{Dict, List, YString, Ycd};
-use crate::conv::{PyYamlConfigDocument, YcdDict, YcdList, YcdValueType};
-use crate::{
-    construct_new_ycd, load_referenced_document, InvalidRemoveError, ReferencedDocumentNotFound,
-    YamlConfigDocument, REF, REMOVE, REMOVE_FROM_LIST_PREFIX,
-};
-use pyo3::exceptions;
-pub(crate) use pyo3::prelude::*;
-use pyo3::types::PyType;
 use std::collections::hash_map::Entry;
 use std::iter::Peekable;
 use std::mem::take;
 use std::str::Split;
+
+use pyo3::exceptions;
+pub(crate) use pyo3::prelude::*;
+use pyo3::types::PyType;
+
+use crate::{
+    construct_new_ycd, InvalidRemoveError, load_referenced_document, REF,
+    ReferencedDocumentNotFound, REMOVE, REMOVE_FROM_LIST_PREFIX, YamlConfigDocument,
+};
+use crate::conv::{PyYamlConfigDocument, YcdDict, YcdList, YcdValueType};
+use crate::conv::YcdValueType::{Dict, List, Ycd, YString};
+use crate::pyutil::ClonePyRef;
 
 #[derive(FromPyObject)]
 pub(crate) struct SubdocSpec(String, Py<PyType>); // path spec, type
@@ -115,7 +118,7 @@ pub(crate) fn test_subdoc_specs(
     replace_with: YcdValueType,
 ) -> PyResult<(YcdDict, Py<PyType>)> {
     let spec = SubdocSpec(path, typ);
-    spec.replace_at(&mut input, |_| Ok(replace_with.clone()), py)?;
+    spec.replace_at(&mut input, |_| Ok(replace_with.clone_pyref(py)), py)?;
     Ok((input, spec.1))
 }
 
@@ -218,7 +221,7 @@ fn merge_documents_recursion(
                                 if t.contains_key(&k) {
                                     match merge_documents_recursion(
                                         py,
-                                        t.get(&k).unwrap().clone(),
+                                        t.get(&k).unwrap().clone_pyref(py),
                                         v,
                                     ) {
                                         Ok(ov) => Ok((k, ov)),
@@ -286,7 +289,7 @@ pub(crate) fn merge_documents(
     let source_doc = source.borrow(py);
     match merge_documents_recursion(
         py,
-        Dict(source_doc.doc.clone()),
+        Dict(source_doc.doc.clone_pyref(py)),
         Dict(take(&mut target_doc.doc)),
     )? {
         Dict(newdoc) => target_doc.doc = newdoc,
@@ -378,16 +381,22 @@ pub(crate) fn resolve_and_merge(
 pub(crate) fn load_subdocument(
     py: Python,
     doc: &mut YcdValueType,
-    args: [PyObject; 4],
+    args: &[PyObject; 4],
     doc_clss: Py<PyType>,
     lookup_paths: &[String],
 ) -> PyResult<YcdValueType> {
     let ycd = match doc {
         Ycd(v) => v.clone_ref(py),
-        Dict(d) => construct_new_ycd(py, doc_clss.extract(py)?, [&[
+        Dict(d) => {
+            let static_args = [
                 doc_clss.to_object(py),
-                d.to_object(py),
-            ][..], &args[..]].concat())?,
+                d.to_object(py)
+            ];
+            let args_iter = args.iter().map(|obj| obj.clone_ref(py));
+            let new_args = static_args.into_iter().chain(args_iter).collect::<Vec<_>>();
+
+            construct_new_ycd(py, &doc_clss.extract(py)?, new_args)?
+        },
         YString(s) => return if s == REMOVE {
             Ok(YString(REMOVE.to_string()))
         } else {
@@ -421,7 +430,7 @@ pub(crate) fn load_subdocuments(
     for spec in specs {
         spec.replace_at(
             &mut doc_borrow.doc,
-            |target| load_subdocument(py, target, args.clone(), spec.1.clone_ref(py), lookup_paths),
+            |target| load_subdocument(py, target, &args, spec.1.clone_ref(py), lookup_paths),
             py,
         )?;
     }
@@ -431,7 +440,7 @@ pub(crate) fn load_subdocuments(
 /// Recursively removes all YamlConfigDocuments and replaces them by their doc dictionary.
 pub(crate) fn recursive_docs_to_dicts(input: YcdValueType, py: Python) -> PyResult<YcdValueType> {
     match input {
-        Ycd(v) => recursive_docs_to_dicts(Dict(v.borrow(py).doc.clone()), py),
+        Ycd(v) => recursive_docs_to_dicts(Dict(v.borrow(py).doc.clone_pyref(py)), py),
         Dict(v) => match v
             .into_iter()
             .map(|(k, v)| match recursive_docs_to_dicts(v, py) {

@@ -1,12 +1,15 @@
-use crate::conv::{PyYamlConfigDocument, SimpleYcdValueType, YHashMap, YcdValueType};
-use crate::{YamlConfigDocument, FORCE_STRING};
-use minijinja::value::{Object, Primitive, Value};
-use minijinja::{Environment, Error, ErrorKind, State};
-use pyo3::types::PyTuple;
-use pyo3::{PyObject, PyResult, Python, ToPyObject};
-use serde::{Serialize, Serializer};
 use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
+
+use minijinja::{Environment, Error, ErrorKind, State};
+use minijinja::value::{Object, Primitive, Value};
+use pyo3::{PyObject, PyResult, Python, ToPyObject};
+use pyo3::types::PyTuple;
+use serde::{Serialize, Serializer};
+
+use crate::{FORCE_STRING, YamlConfigDocument};
+use crate::conv::{PyYamlConfigDocument, SimpleYcdValueType, YcdValueType, YHashMap};
+use crate::pyutil::ClonePyRef;
 
 // https://github.com/rust-lang/rust/issues/70263
 macro_rules! typed_closure {
@@ -83,7 +86,7 @@ impl<'env> TemplateRenderer<'env> {
             (Fn(&State, Vec<Value>) -> Result<Value, Error> + Sync + Send + 'static),
             move |_state: &State, args: Vec<Value>| -> Result<Value, Error> {
                 Python::with_gil(|py| {
-                    let pyargs = PyTuple::new(py, args.into_iter().map(WValue));
+                    let pyargs = PyTuple::new_bound(py, args.into_iter().map(WValue));
 
                     match pyf.call1(py, pyargs) {
                         Ok(v) => match v.extract::<YcdValueType>(py) {
@@ -162,7 +165,10 @@ impl From<YcdValueType> for Value {
 impl From<&YcdValueType> for Value {
     fn from(in_v: &YcdValueType) -> Self {
         match in_v {
-            YcdValueType::Dict(v) => Value::from_object(YHashMap(v.clone())), // TODO: Not ideal
+            YcdValueType::Dict(v) => {
+                // TODO: Not ideal
+                Python::with_gil(|py| Value::from_object(YHashMap(v.clone_pyref(py))))
+            }
             YcdValueType::List(v) => v.iter().map(|v| v.into()).collect::<Vec<Value>>().into(),
             YcdValueType::YString(v) => Value::from(v.clone()),
             YcdValueType::Bool(v) => Value::from(*v),
@@ -218,7 +224,7 @@ impl Object for PyYamlConfigDocument {
                 if bow.bound_helpers.is_empty() {
                     drop(bow);
                     YamlConfigDocument::collect_bound_variable_helpers(
-                        self.0.clone_ref(py).as_ref(py),
+                        self.0.clone_ref(py).into_bound(py),
                         py,
                     )
                     .ok();
@@ -237,7 +243,7 @@ impl Object for PyYamlConfigDocument {
             if bow.bound_helpers.is_empty() {
                 drop(bow);
                 YamlConfigDocument::collect_bound_variable_helpers(
-                    self.0.clone_ref(py).as_ref(py),
+                    self.0.clone_ref(py).into_bound(py),
                     py,
                 )
                 .map_err(|e| convert_pyerr::<bool>(e).unwrap_err())?;
