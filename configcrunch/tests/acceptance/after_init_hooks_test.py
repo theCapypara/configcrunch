@@ -19,7 +19,7 @@ class AfterInitTest(unittest.TestCase):
 
         setattr(self.doc, '_initialize_data_before_merge', _initialize_data_before_merge)
         self.doc.resolve_and_merge_references([])
-        self.assertEquals({"base": copy(FIX)}, self.doc.to_dict())
+        self.assertEqual({"base": copy(FIX)}, self.doc.to_dict())
 
     def test_initialize_data_after_merge(self):
         def _initialize_data_after_merge(data):
@@ -27,7 +27,7 @@ class AfterInitTest(unittest.TestCase):
 
         setattr(self.doc, '_initialize_data_after_merge', _initialize_data_after_merge)
         self.doc.resolve_and_merge_references([])
-        self.assertEquals({"base": copy(FIX)}, self.doc.to_dict())
+        self.assertEqual({"base": copy(FIX)}, self.doc.to_dict())
 
     def test_initialize_data_after_variables(self):
         def _initialize_data_after_variables(data):
@@ -35,7 +35,7 @@ class AfterInitTest(unittest.TestCase):
 
         setattr(self.doc, '_initialize_data_after_variables', _initialize_data_after_variables)
         self.doc.process_vars()
-        self.assertEquals({"base": copy(FIX)}, self.doc.to_dict())
+        self.assertEqual({"base": copy(FIX)}, self.doc.to_dict())
 
     def test_initialize_data_after_freeze(self):
         def _initialize_data_after_freeze():
@@ -43,4 +43,4 @@ class AfterInitTest(unittest.TestCase):
 
         setattr(self.doc, '_initialize_data_after_freeze', _initialize_data_after_freeze)
         self.doc.freeze()
-        self.assertEquals({"more": copy(FIX)}, self.doc.items())
+        self.assertEqual({"more": copy(FIX)}, self.doc.items())

@@ -12,14 +12,14 @@ class InternalTest(unittest.TestCase):
         })
 
     def test_internal_get_before_freeze(self):
-        self.assertEquals({"key_before": "value_before"}, self.doc.internal_get("more"))
-        self.assertEquals(None, self.doc.internal_get("doesnt_exist"))
+        self.assertEqual({"key_before": "value_before"}, self.doc.internal_get("more"))
+        self.assertEqual(None, self.doc.internal_get("doesnt_exist"))
 
     def test_internal_set_before_freeze(self):
         self.doc.internal_set("more", "new_more")
         self.doc.internal_set("new_key", "new_new_key")
-        self.assertEquals("new_more", self.doc.internal_get("more"))
-        self.assertEquals("new_new_key", self.doc.internal_get("new_key"))
+        self.assertEqual("new_more", self.doc.internal_get("more"))
+        self.assertEqual("new_new_key", self.doc.internal_get("new_key"))
 
     def test_internal_contains_before_freeze(self):
         self.assertTrue(self.doc.internal_contains("more"))
@@ -36,21 +36,21 @@ class InternalTest(unittest.TestCase):
             self.doc["more"] = "new_more"
             self.doc["new_key"] = "new_new_key"
             self.doc.internal_set("internal_new_key", "new_internal_new_key")
-        self.assertEquals("new_more", self.doc.internal_get("more"))
-        self.assertEquals("new_new_key", self.doc.internal_get("new_key"))
-        self.assertEquals("new_internal_new_key", self.doc.internal_get("internal_new_key"))
+        self.assertEqual("new_more", self.doc.internal_get("more"))
+        self.assertEqual("new_new_key", self.doc.internal_get("new_key"))
+        self.assertEqual("new_internal_new_key", self.doc.internal_get("internal_new_key"))
 
     def test_internal_get_after_freeze(self):
         self.doc.freeze()
-        self.assertEquals({"key_before": "value_before"}, self.doc.internal_get("more"))
-        self.assertEquals(None, self.doc.internal_get("doesnt_exist"))
+        self.assertEqual({"key_before": "value_before"}, self.doc.internal_get("more"))
+        self.assertEqual(None, self.doc.internal_get("doesnt_exist"))
 
     def test_internal_set_after_freeze(self):
         self.doc.freeze()
         self.doc.internal_set("more", "new_more")
         self.doc.internal_set("new_key", "new_new_key")
-        self.assertEquals("new_more", self.doc.internal_get("more"))
-        self.assertEquals("new_new_key", self.doc.internal_get("new_key"))
+        self.assertEqual("new_more", self.doc.internal_get("more"))
+        self.assertEqual("new_new_key", self.doc.internal_get("new_key"))
 
     def test_internal_contains_after_freeze(self):
         self.doc.freeze()
@@ -70,6 +70,6 @@ class InternalTest(unittest.TestCase):
             self.doc["more"] = "new_more"
             self.doc["new_key"] = "new_new_key"
             self.doc.internal_set("internal_new_key", "new_internal_new_key")
-        self.assertEquals("new_more", self.doc.internal_get("more"))
-        self.assertEquals("new_new_key", self.doc.internal_get("new_key"))
-        self.assertEquals("new_internal_new_key", self.doc.internal_get("internal_new_key"))
+        self.assertEqual("new_more", self.doc.internal_get("more"))
+        self.assertEqual("new_new_key", self.doc.internal_get("new_key"))
+        self.assertEqual("new_internal_new_key", self.doc.internal_get("internal_new_key"))

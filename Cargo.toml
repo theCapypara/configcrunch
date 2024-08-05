@@ -1,6 +1,6 @@
 [package]
 name = "configcrunch"
-version = "1.0.5"
+version = "1.0.6"
 authors = ["Marco Köpcke <hello@capypara.de>"]
 edition = "2021"
 repository = "https://github.com/theCapypara/configcrunch"
