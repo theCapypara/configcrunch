@@ -148,4 +148,4 @@ jobs:
           TWINE_USERNAME: ${{ secrets.TWINE_USR }}
           TWINE_PASSWORD: ${{ secrets.TWINE_PSW }}
         run: |
-          twine upload wheels-linux/*manylinux*.whl wheels-windows*/*.whl wheels-macos*/*.whl
+          twine upload wheels*/*.whl wheels*/*.tar.gz
