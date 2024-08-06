@@ -1,6 +1,6 @@
 [package]
 name = "configcrunch"
-version = "1.0.6"
+version = "1.1.0"
 authors = ["Marco Köpcke <hello@capypara.de>"]
 edition = "2021"
 repository = "https://github.com/theCapypara/configcrunch"
@@ -12,7 +12,7 @@ name = "configcrunch"
 
 [dependencies]
 pyo3 = { version = "0.22", features = ["extension-module"] }
-serde = { version = "1", features = ["derive"]}
+serde = { version = "1", features = ["derive"] }
 serde_yaml = "0.9"
-minijinja = { git = "https://github.com/theCapypara/minijinja.git", branch = "configcrunch", features = ["memchr"] }
+minijinja = "2"
 path-absolutize = "3"

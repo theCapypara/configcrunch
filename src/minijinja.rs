@@ -1,8 +1,9 @@
 use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
+use std::sync::Arc;
 
 use minijinja::{Environment, Error, ErrorKind, State};
-use minijinja::value::{Object, Primitive, Value};
+use minijinja::value::{Object, Value, ValueKind};
 use pyo3::{PyObject, PyResult, Python, ToPyObject};
 use pyo3::types::PyTuple;
 use serde::{Serialize, Serializer};
@@ -19,7 +20,7 @@ macro_rules! typed_closure {
     } }
 }
 
-type FuncFunc = dyn Fn(&State, Vec<Value>) -> Result<Value, Error> + Sync + Send + 'static;
+type FuncFunc = dyn Fn(&State, &[Value]) -> Result<Value, Error> + Sync + Send + 'static;
 
 pub(crate) struct TemplateRenderer<'env> {
     env: Environment<'env>,
@@ -62,7 +63,7 @@ impl<'env> TemplateRenderer<'env> {
         let result = self
             .env
             .get_template(Self::TPL_NAME)?
-            .render_from_value(Self::build_context(self.document.clone_ref(py)))?;
+            .render(Self::build_context(self.document.clone_ref(py)))?;
         self.env.remove_template(Self::TPL_NAME);
         Ok(Some(result))
     }
@@ -83,10 +84,10 @@ impl<'env> TemplateRenderer<'env> {
 
     pub fn create_helper_fn(pyf: PyObject) -> Box<FuncFunc> {
         Box::new(typed_closure!(
-            (Fn(&State, Vec<Value>) -> Result<Value, Error> + Sync + Send + 'static),
-            move |_state: &State, args: Vec<Value>| -> Result<Value, Error> {
+            (Fn(&State, &[Value]) -> Result<Value, Error> + Sync + Send + 'static),
+            move |_state: &State, args: &[Value]| -> Result<Value, Error> {
                 Python::with_gil(|py| {
-                    let pyargs = PyTuple::new_bound(py, args.into_iter().map(WValue));
+                    let pyargs = PyTuple::new_bound(py, args.iter().cloned().map(WValue));
 
                     match pyf.call1(py, pyargs) {
                         Ok(v) => match v.extract::<YcdValueType>(py) {
@@ -126,7 +127,7 @@ fn startswith_filter(_state: &State, string: String, start: String) -> Result<bo
 
 fn convert_pyerr<_T>(in_e: pyo3::PyErr) -> Result<_T, Error> {
     Err(Error::new(
-        ErrorKind::ImpossibleOperation,
+        ErrorKind::InvalidOperation,
         format!("Error in a function: {:?}", in_e),
     ))
 }
@@ -134,7 +135,7 @@ fn convert_pyerr<_T>(in_e: pyo3::PyErr) -> Result<_T, Error> {
 impl From<SimpleYcdValueType> for Value {
     fn from(in_v: SimpleYcdValueType) -> Self {
         match in_v {
-            SimpleYcdValueType::Dict(v) => Value::from_serializable(&v),
+            SimpleYcdValueType::Dict(v) => Value::from_serialize(&v),
             SimpleYcdValueType::List(v) => Value::from(v),
             SimpleYcdValueType::YString(v) => Value::from(v),
             SimpleYcdValueType::Bool(v) => Value::from(v),
@@ -182,21 +183,19 @@ impl From<&YcdValueType> for Value {
 struct WValue(Value);
 impl ToPyObject for WValue {
     fn to_object(&self, py: Python) -> PyObject {
-        match self.0.as_primitive() {
-            None => py.None(),
-            Some(v) => match v {
-                Primitive::Undefined => py.None(),
-                Primitive::None => py.None(),
-                Primitive::Bool(v) => v.to_object(py),
-                Primitive::U64(v) => v.to_object(py),
-                Primitive::U128(v) => v.to_object(py),
-                Primitive::I64(v) => v.to_object(py),
-                Primitive::I128(v) => v.to_object(py),
-                Primitive::F64(v) => v.to_object(py),
-                Primitive::Char(v) => v.to_object(py),
-                Primitive::Str(v) => v.to_object(py),
-                Primitive::Bytes(v) => v.to_object(py),
-            },
+        match self.0.kind() {
+            ValueKind::Undefined => py.None(),
+            ValueKind::None => py.None(),
+            ValueKind::Bool => self.0.is_true().to_object(py),
+            ValueKind::Number => i128::try_from(self.0.clone()).unwrap().to_object(py),
+            ValueKind::String => self.0.as_str().unwrap().to_object(py),
+            ValueKind::Bytes => self.0.as_bytes().to_object(py),
+            ValueKind::Seq => py.None(),      // not supported
+            ValueKind::Map => py.None(),      // not supported
+            ValueKind::Iterable => py.None(), // not supported
+            ValueKind::Plain => py.None(),    // not supported
+            ValueKind::Invalid => py.None(),  // not supported
+            _ => py.None(),                   // not supported
         }
     }
 }
@@ -211,13 +210,14 @@ impl Display for VariableHelper {
 }
 
 impl Object for VariableHelper {
-    fn call(&self, state: &State, args: Vec<Value>) -> Result<Value, Error> {
+    fn call(self: &Arc<Self>, state: &State, args: &[Value]) -> Result<Value, Error> {
         Python::with_gil(|py| TemplateRenderer::create_helper_fn(self.0.clone_ref(py))(state, args))
     }
 }
 
 impl Object for PyYamlConfigDocument {
-    fn get_attr(&self, name: &str) -> Option<Value> {
+    fn get_value(self: &Arc<Self>, key: &Value) -> Option<Value> {
+        let name = key.as_str()?;
         Python::with_gil(|py| {
             let mut bow = self.0.borrow(py);
             bow.doc.get(name).map(|x| x.into()).or_else(|| {
@@ -237,7 +237,12 @@ impl Object for PyYamlConfigDocument {
         })
     }
 
-    fn call_method(&self, state: &State, name: &str, args: Vec<Value>) -> Result<Value, Error> {
+    fn call_method(
+        self: &Arc<Self>,
+        state: &State,
+        name: &str,
+        args: &[Value],
+    ) -> Result<Value, Error> {
         Python::with_gil(|py| {
             let mut bow = self.0.borrow(py);
             if bow.bound_helpers.is_empty() {
@@ -251,7 +256,7 @@ impl Object for PyYamlConfigDocument {
             }
             match bow.bound_helpers.get(name) {
                 None => Err(Error::new(
-                    ErrorKind::ImpossibleOperation,
+                    ErrorKind::InvalidOperation,
                     format!("Method {} not found on object", name),
                 )),
                 Some(helper) => {
@@ -273,22 +278,35 @@ impl<'a> Serialize for YHashMapItem<'a> {
 }
 
 impl Object for YHashMap<String, YcdValueType> {
-    fn get_attr(&self, name: &str) -> Option<Value> {
+    fn get_value(self: &Arc<Self>, key: &Value) -> Option<Value> {
+        let name = key.as_str()?;
         self.0.get(name).map(|x| x.into())
     }
 
-    fn call_method(&self, _state: &State, name: &str, _args: Vec<Value>) -> Result<Value, Error> {
+    fn call_method(
+        self: &Arc<Self>,
+        _state: &State,
+        name: &str,
+        _args: &[Value],
+    ) -> Result<Value, Error> {
         match name {
             "items" => Ok(Value::from(
                 self.0
                     .iter()
-                    .map(|(k, v)| Value::from_serializable(&YHashMapItem(k.clone(), v)))
+                    .map(|(k, v)| Value::from_serialize(YHashMapItem(k.clone(), v)))
                     .collect::<Vec<Value>>(),
             )),
-            "values" => Ok(Value::from(self.0.values().collect::<Vec<&YcdValueType>>())),
+            "values" => Python::with_gil(|py| {
+                Ok(Value::from(
+                    self.0
+                        .values()
+                        .map(|v| v.clone_pyref(py))
+                        .collect::<Vec<YcdValueType>>(),
+                ))
+            }),
             "keys" => Ok(Value::from(self.0.keys().cloned().collect::<Vec<String>>())),
             _ => Err(Error::new(
-                ErrorKind::ImpossibleOperation,
+                ErrorKind::InvalidOperation,
                 format!("object has no method named {}", name),
             )),
         }

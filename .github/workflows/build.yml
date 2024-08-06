@@ -49,10 +49,37 @@ jobs:
         uses: EnricoMi/publish-unit-test-result-action@v2
         with:
           files: artifacts/**/*.xml
-  build_linux:
-    needs: test
+  build-sdist:
+    name: Build SDist
     runs-on: ubuntu-latest
-    name: Linux Wheels
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build SDist
+        run: pipx run build --sdist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wheels-sdist
+          path: dist/*.tar.gz
+  build:
+    runs-on: ${{ matrix.os }}
+    name: Build Wheels
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            arch: x86_64
+          # very slow:
+          #- os: ubuntu-latest
+          #  arch: arm64
+          - os: macos-12
+            arch: x86_64
+          - os: macos-12
+            arch: arm64
+          - os: windows-2019
+            arch: x86
+          - os: windows-2019
+            arch: AMD64
     steps:
       # For tags we assume the version in pyproject.toml is correct!
       - name: Checkout
@@ -67,10 +94,10 @@ jobs:
         run: |
           PACKAGE_VERSION=$(grep "version" ./pyproject.toml | tr -d '"' | awk -F' ' '{print $3}')
           echo "PACKAGE_VERSION=$PACKAGE_VERSION" >> $GITHUB_ENV
-      - name: Set up Python 3.8
+      - name: Set up Python 3.12
         uses: actions/setup-python@v5
         with:
-          python-version: 3.8
+          python-version: 3.12
       - name: Upgrade pip
         run: |
           python -m pip install --upgrade pip
@@ -85,60 +112,7 @@ jobs:
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
-          name: wheels-linux
-          path: dist/*.whl
-  build_macos_windows:
-    needs: test
-    runs-on: ${{ matrix.os }}
-    name: Mac/Win Wheel
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ macos-12, windows-2019 ]
-        python-version: [ '3.7', '3.8', '3.9', '3.10', '3.11', '3.12', '3.13' ]
-        arch: [ 'x64', 'x86' ]
-        exclude:
-          - os: macos-12
-            arch: 'x86'
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Rewrite version for dev if not tag
-        if: "!startsWith(github.ref, 'refs/tags/') && matrix.os == 'macos-12'"
-        shell: bash
-        run: |
-          sed -E -i '' -e "s/version\s*=\s*\"(.*)(\.rc.*|\.a.*|\.post.*)?\"/version = \"\1.dev0+${GITHUB_SHA::8}\"/;" pyproject.toml
-      - name: Rewrite version for dev if not tag
-        if: "!startsWith(github.ref, 'refs/tags/') && matrix.os != 'macos-12'"
-        shell: bash
-        run: |
-          sed -E -i -e "s/version\s*=\s*\"(.*)(\.rc.*|\.a.*|\.post.*)?\"/version = \"\1.dev0+${GITHUB_SHA::8}\"/;" pyproject.toml
-      - name: Note version
-        shell: bash
-        run: |
-          PACKAGE_VERSION=$(grep "version" ./pyproject.toml | tr -d '"' | awk -F' ' '{print $3}')
-          echo "PACKAGE_VERSION=$PACKAGE_VERSION" >> $GITHUB_ENV
-      - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: stable
-          target: "${{ matrix.os == 'windows-2019' && 'i686-pc-windows-msvc' || 'x86_64-apple-darwin' }}"
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-          architecture: ${{ matrix.arch }}
-      - name: Upgrade pip, install dev dependencies
-        run: |
-          python -m pip install --upgrade pip wheel build
-          python -m pip install -r requirements.txt
-      - name: Build Python wheels
-        run: |
-          python -m build
-      - name: Upload wheels
-        uses: actions/upload-artifact@v4
-        with:
-          name: wheels-${{ matrix.os }}-py${{ matrix.python-version }}-${{ matrix.arch }}
+          name: wheels-${{ matrix.os }}-${{ matrix.arch }}
           path: dist/*.whl
   deploy:
     if: startsWith(github.ref, 'refs/tags/')
@@ -150,10 +124,10 @@ jobs:
     steps:
       - name: Download wheels
         uses: actions/download-artifact@v4
-      - name: Set up Python 3.8
+      - name: Set up Python 3.12
         uses: actions/setup-python@v5
         with:
-          python-version: 3.8
+          python-version: 3.12
       - name: Upgrade pip
         run: |
           python -m pip install --upgrade pip

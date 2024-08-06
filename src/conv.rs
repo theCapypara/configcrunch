@@ -73,6 +73,13 @@ pub(crate) enum YcdValueType {
     Float(f64),
 }
 
+// only as a crutch! consider using ClonePyRef instead.
+impl Clone for YcdValueType {
+    fn clone(&self) -> Self {
+        Python::with_gil(|py| self.clone_pyref(py))
+    }
+}
+
 impl ClonePyRef for YcdValueType {
     fn clone_pyref(&self, py: Python) -> Self {
         match self {
