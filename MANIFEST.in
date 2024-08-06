@@ -1,2 +1,8 @@
 include pyproject.toml Cargo.toml
+recursive-include configcrunch *.pyi
+recursive-include configcrunch *.py
+recursive-include configcrunch py.typed
 recursive-include src *
+recursive-include tests *.py
+recursive-include tests *.yml
+global-exclude *.pyc
