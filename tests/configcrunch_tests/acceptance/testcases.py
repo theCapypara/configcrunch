@@ -5,7 +5,7 @@ from collections.abc import Hashable
 
 import yaml
 from schema import SchemaError
-from configcrunch.tests.fixtures.documents import Base
+from configcrunch_tests.fixtures.documents import Base
 
 
 class ConfigcrunchTestCase(unittest.TestCase, ABC):

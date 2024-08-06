@@ -1,7 +1,7 @@
 import unittest
 from copy import copy
 
-from configcrunch.tests.fixtures.documents import Base
+from configcrunch_tests.fixtures.documents import Base
 FIX = {"more": "data_modified_after_merge"}
 
 

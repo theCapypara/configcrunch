@@ -1,6 +1,6 @@
 from configcrunch import load_multiple_yml
-from configcrunch.tests.fixtures.documents import Base
-from configcrunch.tests.acceptance.testcases import ConfigcrunchTestCase, deep_sort
+from configcrunch_tests.fixtures.documents import Base
+from configcrunch_tests.acceptance.testcases import ConfigcrunchTestCase, deep_sort
 
 
 class AdvancedLoader(ConfigcrunchTestCase):

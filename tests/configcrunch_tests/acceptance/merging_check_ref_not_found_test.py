@@ -1,6 +1,6 @@
 from configcrunch import ReferencedDocumentNotFound
-from configcrunch.tests.fixtures.documents import Base
-from configcrunch.tests.acceptance.testcases import ConfigcrunchTestCase
+from configcrunch_tests.fixtures.documents import Base
+from configcrunch_tests.acceptance.testcases import ConfigcrunchTestCase
 
 
 class MergingCheckRefNotFound(ConfigcrunchTestCase):

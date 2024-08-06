@@ -1,4 +1,4 @@
-from configcrunch.tests.acceptance.testcases import ConfigcrunchTestCase
+from configcrunch_tests.acceptance.testcases import ConfigcrunchTestCase
 
 
 class MergingListDuplicates(ConfigcrunchTestCase):
