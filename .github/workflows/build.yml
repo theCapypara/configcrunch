@@ -27,6 +27,7 @@ jobs:
           toolchain: stable
       - name: Test with tox
         run: tox
+        working-directory: tests
         env:
           RUSTUP_TOOLCHAIN: stable
       - name: Upload Test Results
@@ -91,9 +92,19 @@ jobs:
         run: |
           sed -E -i -e "s/version\s*=\s*\"(.*)(\.rc.*|\.a.*|\.post.*)?\"/version = \"\1.dev0+${GITHUB_SHA::8}\"/;" pyproject.toml
       - name: Note version
+        if: matrix.os != 'windows-2019'
+        shell: bash
         run: |
-          PACKAGE_VERSION=$(grep "version" ./pyproject.toml | tr -d '"' | awk -F' ' '{print $3}')
-          echo "PACKAGE_VERSION=$PACKAGE_VERSION" >> $GITHUB_ENV
+          python3 -m venv .yq-venv
+          . .yq-venv/bin/activate
+          pip install yq
+          echo "PACKAGE_VERSION=$(tomlq '.project.version' pyproject.toml -r)" >> $GITHUB_ENV
+      - name: Note version (Windows)
+        if: matrix.os == 'windows-2019'
+        run: |
+          pipx install yq
+          $env:PACKAGE_VERSION = tomlq.exe '.project.version' pyproject.toml -r
+          echo "PACKAGE_VERSION=$env:PACKAGE_VERSION" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
       - name: Set up Python 3.12
         uses: actions/setup-python@v5
         with:
