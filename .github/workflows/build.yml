@@ -117,8 +117,7 @@ jobs:
   deploy:
     if: startsWith(github.ref, 'refs/tags/')
     needs:
-      - build_linux
-      - build_macos_windows
+      - build
     runs-on: ubuntu-latest
     name: Deploy wheels to PyPI
     steps:
