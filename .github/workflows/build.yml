@@ -89,8 +89,9 @@ jobs:
           submodules: 'recursive'
       - name: Rewrite version for dev if not tag
         if: "!startsWith(github.ref, 'refs/tags/')"
+        shell: bash
         run: |
-          sed -E -i -e "s/version\s*=\s*\"(.*)(\.rc.*|\.a.*|\.post.*)?\"/version = \"\1.dev0+${GITHUB_SHA::8}\"/;" pyproject.toml
+          perl -i -pe "s/version\s*=\s*\"(.*?)(\.rc.*|\.a.*|\.post.*)?\"/version=\"\1.dev0+${GITHUB_SHA::8}\"/" pyproject.toml
       - name: Note version
         if: matrix.os != 'windows-2019'
         shell: bash
