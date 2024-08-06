@@ -35,7 +35,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Pytest Test Results (Python ${{ matrix.python-version }})
-          path: pytest.xml
+          path: tests/pytest.xml
   publish-test-results:
     name: "Publish Unit Tests Results"
     needs: test
