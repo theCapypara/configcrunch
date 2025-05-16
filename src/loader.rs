@@ -4,13 +4,13 @@ use std::fs::File;
 use std::path::PathBuf;
 
 use path_absolutize::Absolutize;
-use pyo3::exceptions;
 pub(crate) use pyo3::prelude::*;
 use pyo3::types::{PyTuple, PyType};
+use pyo3::{IntoPyObjectExt, exceptions};
 
 use crate::conv::YcdValueType::YString;
 use crate::conv::{PyYamlConfigDocument, SimpleYcdValueType, YHashMap, YcdDict};
-use crate::{merge_documents, InvalidDocumentError, InvalidHeaderError, YamlConfigDocument, REF};
+use crate::{InvalidDocumentError, InvalidHeaderError, REF, YamlConfigDocument, merge_documents};
 
 #[pyfunction]
 #[pyo3(signature = (doc_type, *args))]
@@ -145,7 +145,7 @@ pub(crate) fn load_yaml_file(path_to_yaml: &str) -> PyResult<YcdDict> {
             return Err(InvalidDocumentError::new_err(format!(
                 "Unable to open YAML file {}: {:?}",
                 path_to_yaml, e
-            )))
+            )));
         }
     };
 
@@ -188,12 +188,12 @@ pub(crate) fn dict_to_doc_cls(
             py,
             &doc_cls,
             [
-                doc_cls.to_object(py),
-                doc_dict.get(header).unwrap().to_object(py),
-                ref_path_in_repo.into_py(py),
-                parent.to_object(py),
-                parent_ref.already_loaded_docs.to_object(py),
-                new_abs_paths.into_py(py),
+                (&doc_cls).into_py_any(py)?,
+                doc_dict.get(header).unwrap().into_py_any(py)?,
+                ref_path_in_repo.into_py_any(py)?,
+                (&parent).into_py_any(py)?,
+                (&parent_ref.already_loaded_docs).into_py_any(py)?,
+                new_abs_paths.into_py_any(py)?,
             ],
         );
     }
@@ -253,16 +253,16 @@ pub(crate) fn load_referenced_document(
 }
 
 #[inline]
-pub(crate) fn construct_new_ycd<T, U>(
-    py: Python,
+pub(crate) fn construct_new_ycd<'py, T, U>(
+    py: Python<'py>,
     cls: &Py<PyType>,
     in_args: impl IntoIterator<Item = T, IntoIter = U>,
 ) -> PyResult<PyYamlConfigDocument>
 where
-    T: ToPyObject,
+    T: IntoPyObject<'py>,
     U: ExactSizeIterator<Item = T>,
 {
-    let args = PyTuple::new_bound(py, in_args);
+    let args = PyTuple::new(py, in_args)?;
     let slf: Py<PyAny> = cls.getattr(py, "__new__")?.call1(py, args)?;
     Ok(slf.extract::<Py<YamlConfigDocument>>(py)?.into())
 }

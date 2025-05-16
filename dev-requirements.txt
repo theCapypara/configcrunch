@@ -1,3 +1,4 @@
 setuptools-rust
 toml
 pyyaml==6.0.1
+furo

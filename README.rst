@@ -28,7 +28,7 @@ Configcrunch
 Configcrunch is a Python library written in Rust for reading YAML-based configuration files.
 It aims to be simple and fast while also providing some very powerful features.
 
-Configcrunch is compatible with Python 3.7 and up.
+Configcrunch is compatible with Python 3.11 and up.
 
 Install it via pip: ``pip install configcrunch``
 

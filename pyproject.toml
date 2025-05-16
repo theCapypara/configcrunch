@@ -4,10 +4,10 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "configcrunch"
-version = "1.1.0.post1"
+version = "1.2.0"
 description = "Configuration parser based on YAML-Files with support for variables, overlaying and hierarchies"
 readme = "README.rst"
-requires-python = ">=3.7"
+requires-python = ">=3.11"
 license = { file = "LICENSE" }
 authors = [
     { name = "Marco Köpcke", email = "hello@capypara.de" }
@@ -18,10 +18,6 @@ classifiers = [
     "Programming Language :: Rust",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
-    "Programming Language :: Python :: 3.7",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",

@@ -3,17 +3,17 @@ use std::iter::Peekable;
 use std::mem::take;
 use std::str::Split;
 
-use pyo3::exceptions;
 pub(crate) use pyo3::prelude::*;
 use pyo3::types::PyType;
+use pyo3::{IntoPyObjectExt, exceptions};
 
-use crate::{
-    construct_new_ycd, InvalidRemoveError, load_referenced_document, REF,
-    ReferencedDocumentNotFound, REMOVE, REMOVE_FROM_LIST_PREFIX, YamlConfigDocument,
-};
+use crate::conv::YcdValueType::{Dict, List, YString, Ycd};
 use crate::conv::{PyYamlConfigDocument, YcdDict, YcdList, YcdValueType};
-use crate::conv::YcdValueType::{Dict, List, Ycd, YString};
 use crate::pyutil::ClonePyRef;
+use crate::{
+    InvalidRemoveError, REF, REMOVE, REMOVE_FROM_LIST_PREFIX, ReferencedDocumentNotFound,
+    YamlConfigDocument, construct_new_ycd, load_referenced_document,
+};
 
 #[derive(FromPyObject)]
 pub(crate) struct SubdocSpec(String, Py<PyType>); // path spec, type
@@ -54,49 +54,70 @@ impl SubdocSpec {
                     Entry::Occupied(mut oe) => {
                         if multiple {
                             match oe.get_mut() {
-                                Dict(dobj) => *dobj = dobj
+                                Dict(dobj) => {
+                                    *dobj = dobj
                                         .iter_mut()
-                                        .map(|(k,v)| match cb(v) {
+                                        .map(|(k, v)| match cb(v) {
                                             Ok(nv) => Ok((k.clone(), {
                                                 match nv {
                                                     Ycd(nvycd) => {
                                                         // Insert a $name system key to all documents in a dict, which contain the dict key.
-                                                        nvycd.borrow_mut(py).doc.insert("$name".to_string(), YString(k.to_string()));
+                                                        nvycd.borrow_mut(py).doc.insert(
+                                                            "$name".to_string(),
+                                                            YString(k.to_string()),
+                                                        );
                                                         Ycd(nvycd)
                                                     }
-                                                    _ => nv
+                                                    _ => nv,
                                                 }
                                             })),
-                                            Err(e) => Err(e)
+                                            Err(e) => Err(e),
                                         })
-                                        .collect::<PyResult<YcdDict>>()?,
-                                List(lobj) => *lobj = lobj
-                                        .iter_mut()
-                                        .map(&cb)
-                                        .collect::<PyResult<YcdList>>()?,
-                                YString(s) => if s != REMOVE {
-                                    return Err(exceptions::PyValueError::new_err(format!("Invalid path in subdocument patterns: Invalid reference: {:?}.", oe)))
-                                },
-                                _ => return Err(exceptions::PyValueError::new_err(format!("Invalid path in subdocument patterns: Invalid reference: {:?}.", oe)))
+                                        .collect::<PyResult<YcdDict>>()?
+                                }
+                                List(lobj) => {
+                                    *lobj =
+                                        lobj.iter_mut().map(&cb).collect::<PyResult<YcdList>>()?
+                                }
+                                YString(s) => {
+                                    if s != REMOVE {
+                                        return Err(exceptions::PyValueError::new_err(format!(
+                                            "Invalid path in subdocument patterns: Invalid reference: {:?}.",
+                                            oe
+                                        )));
+                                    }
+                                }
+                                _ => {
+                                    return Err(exceptions::PyValueError::new_err(format!(
+                                        "Invalid path in subdocument patterns: Invalid reference: {:?}.",
+                                        oe
+                                    )));
+                                }
                             }
                         } else {
                             let w = oe.get_mut();
                             *w = cb(w)?
                         }
                     }
-                    Entry::Vacant(_ve) => return Ok(())
-                }
+                    Entry::Vacant(_ve) => return Ok(()),
+                },
                 Some(_) => match from.get_mut(k) {
-                    None => return Err(exceptions::PyValueError::new_err(
-                        format!("Invalid path in subdocument patterns: Not found (expected a dict at {:?}, got nothing).", k)
-                    )),
+                    None => {
+                        return Err(exceptions::PyValueError::new_err(format!(
+                            "Invalid path in subdocument patterns: Not found (expected a dict at {:?}, got nothing).",
+                            k
+                        )));
+                    }
                     Some(v) => match v {
                         Dict(vv) => from = vv,
-                        _ => return Err(exceptions::PyValueError::new_err(
-                            format!("Invalid path in subdocument patterns: Not found (expected a dict at {:?}, got {:?}).", k, v)
-                        ))
-                    }
-                }
+                        _ => {
+                            return Err(exceptions::PyValueError::new_err(format!(
+                                "Invalid path in subdocument patterns: Not found (expected a dict at {:?}, got {:?}).",
+                                k, v
+                            )));
+                        }
+                    },
+                },
             }
         }
         if run_at_least_once {
@@ -296,7 +317,7 @@ pub(crate) fn merge_documents(
         _ => {
             return Err(exceptions::PyRuntimeError::new_err(
                 "Invalid state while merging documents.",
-            ))
+            ));
         }
     }
     target_doc.already_loaded_docs.as_mut().unwrap().extend(
@@ -388,21 +409,28 @@ pub(crate) fn load_subdocument(
     let ycd = match doc {
         Ycd(v) => v.clone_ref(py),
         Dict(d) => {
-            let static_args = [
-                doc_clss.to_object(py),
-                d.to_object(py)
-            ];
+            let static_args = [(&doc_clss).into_py_any(py)?, (&*d).into_py_any(py)?];
             let args_iter = args.iter().map(|obj| obj.clone_ref(py));
             let new_args = static_args.into_iter().chain(args_iter).collect::<Vec<_>>();
 
             construct_new_ycd(py, &doc_clss.extract(py)?, new_args)?
-        },
-        YString(s) => return if s == REMOVE {
-            Ok(YString(REMOVE.to_string()))
-        } else {
-            Err(exceptions::PyValueError::new_err(format!("Invalid path in subdocument: Invalid reference where a dict or document was expected: {:?}.", s)))
-        },
-        _ => return Err(exceptions::PyValueError::new_err(format!("Invalid path in subdocument: Invalid reference where a dict or document was expected: {:?}.", doc)))
+        }
+        YString(s) => {
+            return if s == REMOVE {
+                Ok(YString(REMOVE.to_string()))
+            } else {
+                Err(exceptions::PyValueError::new_err(format!(
+                    "Invalid path in subdocument: Invalid reference where a dict or document was expected: {:?}.",
+                    s
+                )))
+            };
+        }
+        _ => {
+            return Err(exceptions::PyValueError::new_err(format!(
+                "Invalid path in subdocument: Invalid reference where a dict or document was expected: {:?}.",
+                doc
+            )));
+        }
     };
     Ok(Ycd(YamlConfigDocument::resolve_and_merge_references(
         ycd.into(),
@@ -422,10 +450,10 @@ pub(crate) fn load_subdocuments(
 ) -> PyResult<()> {
     let mut doc_borrow = doc.borrow_mut(py);
     let args = [
-        doc_borrow.path.clone().into_py(py),
-        doc.to_object(py),
-        doc_borrow.already_loaded_docs.clone().into_py(py),
-        doc_borrow.absolute_paths.clone().into_py(py),
+        doc_borrow.path.clone().into_py_any(py)?,
+        (&doc).into_py_any(py)?,
+        doc_borrow.already_loaded_docs.clone().into_py_any(py)?,
+        doc_borrow.absolute_paths.clone().into_py_any(py)?,
     ];
     for spec in specs {
         spec.replace_at(
