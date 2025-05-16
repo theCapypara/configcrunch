@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use crate::conv::{PyYamlConfigDocument, SimpleYcdValueType, YHashMap, YcdValueType};
 use crate::pyutil::ClonePyRef;
-use crate::{YamlConfigDocument, FORCE_STRING};
+use crate::{FORCE_STRING, YamlConfigDocument};
 use minijinja::value::{Object, Value, ValueKind};
 use minijinja::{Environment, Error, ErrorKind, State};
 use pyo3::types::PyTuple;

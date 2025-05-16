@@ -1,12 +1,12 @@
 use pyo3::prelude::*;
-use pyo3::{exceptions, IntoPyObjectExt};
+use pyo3::{IntoPyObjectExt, exceptions};
 
 use crate::conv::YcdValueType::{Dict, Int, List, YString, Ycd};
 use crate::conv::{PyYamlConfigDocument, YcdValueType};
 use crate::minijinja::TemplateRenderer;
 use crate::pyutil::ClonePyRef;
 use crate::variables::DocumentTraverserCallbackType::{CurrentDoc, SubDoc};
-use crate::{VariableProcessingError, FORCE_STRING};
+use crate::{FORCE_STRING, VariableProcessingError};
 
 struct DocumentTraverser;
 
@@ -98,7 +98,8 @@ impl DocumentTraverser {
                     Err(orig_err) => {
                         let err = VariableProcessingError::new_err(format!(
                             "Error processing a variable for document. Original value was {}. Document path: {}.",
-                            in_str, document.borrow(py).absolute_paths[0]
+                            in_str,
+                            document.borrow(py).absolute_paths[0]
                         ));
                         let err_obj: PyObject = (&err).into_py_any(py)?;
                         let err_pyany: Bound<PyAny> = err_obj.extract(py)?;

@@ -6,8 +6,8 @@ use pyo3::prelude::*;
 use pyo3::types::{PyBool, PyDict, PyFloat, PyInt, PyList, PyString};
 use serde::{Deserialize, Serialize, Serializer};
 
-use crate::pyutil::ClonePyRef;
 use crate::YamlConfigDocument;
+use crate::pyutil::ClonePyRef;
 
 pub(crate) type YcdDict = HashMap<String, YcdValueType>;
 pub(crate) type YcdList = Vec<YcdValueType>;

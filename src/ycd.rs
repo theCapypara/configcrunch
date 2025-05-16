@@ -1,18 +1,18 @@
 use std::collections::HashMap;
 use std::mem::take;
 
+use pyo3::IntoPyObjectExt;
 pub(crate) use pyo3::exceptions;
 pub(crate) use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList, PyTuple, PyType};
-use pyo3::IntoPyObjectExt;
 
 use crate::conv::{PyYamlConfigDocument, YcdDict, YcdValueType};
 use crate::pyutil::ClonePyRef;
 use crate::variables::{process_variables, process_variables_for};
 use crate::{
+    CircularDependencyError, InvalidDocumentError, InvalidHeaderError, REF, SchemaError,
     construct_new_ycd, delete_remove_markers, load_subdocuments, load_yaml_file,
-    recursive_docs_to_dicts, resolve_and_merge, CircularDependencyError, InvalidDocumentError,
-    InvalidHeaderError, SchemaError, REF,
+    recursive_docs_to_dicts, resolve_and_merge,
 };
 
 /// A document represented by a dictionary, that can be validated,
@@ -253,7 +253,7 @@ impl YamlConfigDocument {
             _ => {
                 return Err(exceptions::PyRuntimeError::new_err(
                     "Internal algorithm failure.",
-                ))
+                ));
             }
         }
         Ok(slf_clone)

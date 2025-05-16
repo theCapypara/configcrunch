@@ -6,11 +6,11 @@ use std::path::PathBuf;
 use path_absolutize::Absolutize;
 pub(crate) use pyo3::prelude::*;
 use pyo3::types::{PyTuple, PyType};
-use pyo3::{exceptions, IntoPyObjectExt};
+use pyo3::{IntoPyObjectExt, exceptions};
 
 use crate::conv::YcdValueType::YString;
 use crate::conv::{PyYamlConfigDocument, SimpleYcdValueType, YHashMap, YcdDict};
-use crate::{merge_documents, InvalidDocumentError, InvalidHeaderError, YamlConfigDocument, REF};
+use crate::{InvalidDocumentError, InvalidHeaderError, REF, YamlConfigDocument, merge_documents};
 
 #[pyfunction]
 #[pyo3(signature = (doc_type, *args))]
@@ -145,7 +145,7 @@ pub(crate) fn load_yaml_file(path_to_yaml: &str) -> PyResult<YcdDict> {
             return Err(InvalidDocumentError::new_err(format!(
                 "Unable to open YAML file {}: {:?}",
                 path_to_yaml, e
-            )))
+            )));
         }
     };
 
