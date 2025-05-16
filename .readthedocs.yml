@@ -6,10 +6,7 @@ build:
   os: "ubuntu-20.04"
   tools:
     python: "3.9"
-# TODO: We need a newer version.
-#    rust: "1.55"
 
-#python:
-#  install:
-#    - method: pip
-#      path: .
+sphinx:
+  # Path to your Sphinx configuration file.
+  configuration: docs/source/conf.py
