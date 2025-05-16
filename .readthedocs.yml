@@ -10,6 +10,7 @@ build:
 python:
   install:
     - method: pip
+      requirements: dev-requirements.txt
       extra_requirements:
         - furo
 
