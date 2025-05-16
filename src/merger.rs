@@ -3,17 +3,17 @@ use std::iter::Peekable;
 use std::mem::take;
 use std::str::Split;
 
-use pyo3::exceptions;
 pub(crate) use pyo3::prelude::*;
 use pyo3::types::PyType;
+use pyo3::{exceptions, IntoPyObjectExt};
 
-use crate::{
-    construct_new_ycd, InvalidRemoveError, load_referenced_document, REF,
-    ReferencedDocumentNotFound, REMOVE, REMOVE_FROM_LIST_PREFIX, YamlConfigDocument,
-};
+use crate::conv::YcdValueType::{Dict, List, YString, Ycd};
 use crate::conv::{PyYamlConfigDocument, YcdDict, YcdList, YcdValueType};
-use crate::conv::YcdValueType::{Dict, List, Ycd, YString};
 use crate::pyutil::ClonePyRef;
+use crate::{
+    construct_new_ycd, load_referenced_document, InvalidRemoveError, ReferencedDocumentNotFound,
+    YamlConfigDocument, REF, REMOVE, REMOVE_FROM_LIST_PREFIX,
+};
 
 #[derive(FromPyObject)]
 pub(crate) struct SubdocSpec(String, Py<PyType>); // path spec, type
@@ -389,8 +389,8 @@ pub(crate) fn load_subdocument(
         Ycd(v) => v.clone_ref(py),
         Dict(d) => {
             let static_args = [
-                doc_clss.to_object(py),
-                d.to_object(py)
+                (&doc_clss).into_py_any(py)?,
+                (&*d).into_py_any(py)?
             ];
             let args_iter = args.iter().map(|obj| obj.clone_ref(py));
             let new_args = static_args.into_iter().chain(args_iter).collect::<Vec<_>>();
@@ -422,10 +422,10 @@ pub(crate) fn load_subdocuments(
 ) -> PyResult<()> {
     let mut doc_borrow = doc.borrow_mut(py);
     let args = [
-        doc_borrow.path.clone().into_py(py),
-        doc.to_object(py),
-        doc_borrow.already_loaded_docs.clone().into_py(py),
-        doc_borrow.absolute_paths.clone().into_py(py),
+        doc_borrow.path.clone().into_py_any(py)?,
+        (&doc).into_py_any(py)?,
+        doc_borrow.already_loaded_docs.clone().into_py_any(py)?,
+        doc_borrow.absolute_paths.clone().into_py_any(py)?,
     ];
     for spec in specs {
         spec.replace_at(

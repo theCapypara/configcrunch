@@ -5,13 +5,14 @@ authors = ["Marco Köpcke <hello@capypara.de>"]
 edition = "2021"
 repository = "https://github.com/theCapypara/configcrunch"
 license = "MIT"
+rust-version = "1.82"
 
 [lib]
 crate-type = ["cdylib"]
 name = "configcrunch"
 
 [dependencies]
-pyo3 = { version = "0.22", features = ["extension-module"] }
+pyo3 = { version = "0.23", features = ["extension-module"] }
 serde = { version = "1", features = ["derive"] }
 serde_yaml = "0.9"
 minijinja = "2"

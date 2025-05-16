@@ -2,15 +2,14 @@ use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
 use std::sync::Arc;
 
-use minijinja::{Environment, Error, ErrorKind, State};
-use minijinja::value::{Object, Value, ValueKind};
-use pyo3::{PyObject, PyResult, Python, ToPyObject};
-use pyo3::types::PyTuple;
-use serde::{Serialize, Serializer};
-
-use crate::{FORCE_STRING, YamlConfigDocument};
-use crate::conv::{PyYamlConfigDocument, SimpleYcdValueType, YcdValueType, YHashMap};
+use crate::conv::{PyYamlConfigDocument, SimpleYcdValueType, YHashMap, YcdValueType};
 use crate::pyutil::ClonePyRef;
+use crate::{YamlConfigDocument, FORCE_STRING};
+use minijinja::value::{Object, Value, ValueKind};
+use minijinja::{Environment, Error, ErrorKind, State};
+use pyo3::types::PyTuple;
+use pyo3::{Bound, IntoPyObject, IntoPyObjectExt, PyAny, PyObject, PyResult, Python};
+use serde::{Serialize, Serializer};
 
 // https://github.com/rust-lang/rust/issues/70263
 macro_rules! typed_closure {
@@ -87,7 +86,8 @@ impl<'env> TemplateRenderer<'env> {
             (Fn(&State, &[Value]) -> Result<Value, Error> + Sync + Send + 'static),
             move |_state: &State, args: &[Value]| -> Result<Value, Error> {
                 Python::with_gil(|py| {
-                    let pyargs = PyTuple::new_bound(py, args.iter().cloned().map(WValue));
+                    let pyargs = PyTuple::new(py, args.iter().cloned().map(WValue))
+                        .expect("Failed to construct Python tuple");
 
                     match pyf.call1(py, pyargs) {
                         Ok(v) => match v.extract::<YcdValueType>(py) {
@@ -181,22 +181,29 @@ impl From<&YcdValueType> for Value {
 }
 
 struct WValue(Value);
-impl ToPyObject for WValue {
-    fn to_object(&self, py: Python) -> PyObject {
-        match self.0.kind() {
-            ValueKind::Undefined => py.None(),
-            ValueKind::None => py.None(),
-            ValueKind::Bool => self.0.is_true().to_object(py),
-            ValueKind::Number => i128::try_from(self.0.clone()).unwrap().to_object(py),
-            ValueKind::String => self.0.as_str().unwrap().to_object(py),
-            ValueKind::Bytes => self.0.as_bytes().to_object(py),
-            ValueKind::Seq => py.None(),      // not supported
-            ValueKind::Map => py.None(),      // not supported
-            ValueKind::Iterable => py.None(), // not supported
-            ValueKind::Plain => py.None(),    // not supported
-            ValueKind::Invalid => py.None(),  // not supported
-            _ => py.None(),                   // not supported
-        }
+
+impl<'py> IntoPyObject<'py> for WValue {
+    type Target = PyAny; // the Python type
+    type Output = Bound<'py, Self::Target>; // in most cases this will be `Bound`
+    type Error = pyo3::PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        Ok(match self.0.kind() {
+            ValueKind::Undefined => py.None().into_bound(py),
+            ValueKind::None => py.None().into_bound(py),
+            ValueKind::Bool => self.0.is_true().into_bound_py_any(py)?,
+            ValueKind::Number => i128::try_from(self.0.clone())
+                .unwrap()
+                .into_bound_py_any(py)?,
+            ValueKind::String => self.0.as_str().unwrap().into_bound_py_any(py)?,
+            ValueKind::Bytes => self.0.as_bytes().into_bound_py_any(py)?,
+            ValueKind::Seq => py.None().into_bound(py), // not supported
+            ValueKind::Map => py.None().into_bound(py), // not supported
+            ValueKind::Iterable => py.None().into_bound(py), // not supported
+            ValueKind::Plain => py.None().into_bound(py), // not supported
+            ValueKind::Invalid => py.None().into_bound(py), // not supported
+            _ => py.None().into_bound(py),              // not supported
+        })
     }
 }
 
@@ -268,7 +275,7 @@ impl Object for PyYamlConfigDocument {
 }
 
 struct YHashMapItem<'a>(String, &'a YcdValueType);
-impl<'a> Serialize for YHashMapItem<'a> {
+impl Serialize for YHashMapItem<'_> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
