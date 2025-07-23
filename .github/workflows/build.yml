@@ -77,9 +77,9 @@ jobs:
             arch: x86_64
           - os: macos-14
             arch: arm64
-          - os: windows-2019
+          - os: windows-2022
             arch: x86
-          - os: windows-2019
+          - os: windows-2022
             arch: AMD64
     steps:
       # For tags we assume the version in pyproject.toml is correct!
@@ -93,7 +93,7 @@ jobs:
         run: |
           perl -i -pe "s/version\s*=\s*\"(.*?)(\.rc.*|\.a.*|\.post.*)?\"/version=\"\1.dev0+${GITHUB_SHA::8}\"/" pyproject.toml
       - name: Note version
-        if: matrix.os != 'windows-2019'
+        if: matrix.os != 'windows-2022'
         shell: bash
         run: |
           python3 -m venv .yq-venv
@@ -101,7 +101,7 @@ jobs:
           pip install yq
           echo "PACKAGE_VERSION=$(tomlq '.project.version' pyproject.toml -r)" >> $GITHUB_ENV
       - name: Note version (Windows)
-        if: matrix.os == 'windows-2019'
+        if: matrix.os == 'windows-2022'
         run: |
           pipx install yq
           $env:PACKAGE_VERSION = tomlq.exe '.project.version' pyproject.toml -r
@@ -110,7 +110,7 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         if: runner.os != 'Linux'
         with:
-          target: "${{ matrix.os == 'windows-2019' && 'i686-pc-windows-msvc' || ( matrix.arch == 'arm64' && 'aarch64-apple-darwin' || 'x86_64-apple-darwin') }}"
+          target: "${{ matrix.os == 'windows-2022' && 'i686-pc-windows-msvc' || ( matrix.arch == 'arm64' && 'aarch64-apple-darwin' || 'x86_64-apple-darwin') }}"
       - name: Set up Python 3.13
         uses: actions/setup-python@v5
         with:
