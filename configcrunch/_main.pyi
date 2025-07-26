@@ -30,7 +30,7 @@ class YamlConfigDocument:
     absolute_paths: List[str]
     
     def __init__(
-            self, document: Self, path: Optional[str] = None, parent_doc: Optional[YamlConfigDocument] = None
+            self, document: Self|dict, path: Optional[str] = None, parent_doc: Optional[YamlConfigDocument] = None
     ):
         """Manual constructor. It's recommended to use from_yaml or from_dict instead."""
         ...
