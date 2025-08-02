@@ -123,6 +123,8 @@ class YamlConfigDocument:
 
 
 class DocReference:
+    referenced_type: Type[YamlConfigDocument]
+
     def __init__(self, referenced_doc_type: Type[YamlConfigDocument]): ...
     def validate(self, data): ...
 
