@@ -581,6 +581,7 @@ impl InternalAccessContext {
 
 #[pyclass(module = "_main")]
 pub(crate) struct DocReference {
+    #[pyo3(get)]
     referenced_type: Py<PyType>, // Type[YamlConfigDocument]
 }
 

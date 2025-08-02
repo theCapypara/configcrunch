@@ -138,9 +138,8 @@ fn load_dicts_try_single_path(path: PathBuf) -> PyResult<Option<YcdDict>> {
 }
 
 pub(crate) fn load_yaml_file(path_to_yaml: &str) -> PyResult<YcdDict> {
-    let file;
-    match File::open(path_to_yaml) {
-        Ok(v) => file = v,
+    let file = match File::open(path_to_yaml) {
+        Ok(v) => v,
         Err(e) => {
             return Err(InvalidDocumentError::new_err(format!(
                 "Unable to open YAML file {}: {:?}",
