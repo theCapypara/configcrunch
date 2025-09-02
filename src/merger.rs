@@ -402,7 +402,7 @@ pub(crate) fn resolve_and_merge(
 pub(crate) fn load_subdocument(
     py: Python,
     doc: &mut YcdValueType,
-    args: &[PyObject; 4],
+    args: &[Py<PyAny>; 4],
     doc_clss: Py<PyType>,
     lookup_paths: &[String],
 ) -> PyResult<YcdValueType> {

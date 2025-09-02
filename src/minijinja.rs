@@ -7,8 +7,9 @@ use crate::pyutil::ClonePyRef;
 use crate::{FORCE_STRING, YamlConfigDocument};
 use minijinja::value::{Object, Value, ValueKind};
 use minijinja::{Environment, Error, ErrorKind, State};
+use pyo3::IntoPyObjectExt;
+use pyo3::prelude::*;
 use pyo3::types::PyTuple;
-use pyo3::{Bound, IntoPyObject, IntoPyObjectExt, PyAny, PyObject, PyResult, Python};
 use serde::{Serialize, Serializer};
 
 // https://github.com/rust-lang/rust/issues/70263
@@ -67,7 +68,7 @@ impl<'env> TemplateRenderer<'env> {
         Ok(Some(result))
     }
 
-    pub(crate) fn add_helpers(&mut self, py: Python, helpers: Vec<PyObject>) {
+    pub(crate) fn add_helpers(&mut self, py: Python, helpers: Vec<Py<PyAny>>) {
         self.globals.extend(helpers.into_iter().map(|f| {
             (
                 f.getattr(py, "__name__").unwrap().extract(py).unwrap(),
@@ -81,11 +82,11 @@ impl<'env> TemplateRenderer<'env> {
         Value::from_object(document)
     }
 
-    pub fn create_helper_fn(pyf: PyObject) -> Box<FuncFunc> {
+    pub fn create_helper_fn(pyf: Py<PyAny>) -> Box<FuncFunc> {
         Box::new(typed_closure!(
             (Fn(&State, &[Value]) -> Result<Value, Error> + Sync + Send + 'static),
             move |_state: &State, args: &[Value]| -> Result<Value, Error> {
-                Python::with_gil(|py| {
+                Python::attach(|py| {
                     let pyargs = PyTuple::new(py, args.iter().cloned().map(WValue))
                         .expect("Failed to construct Python tuple");
 
@@ -104,7 +105,7 @@ impl<'env> TemplateRenderer<'env> {
 
 impl Display for PyYamlConfigDocument {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        Python::with_gil(
+        Python::attach(
             |py| match YamlConfigDocument::__str__(self.0.clone_ref(py), py) {
                 Ok(v) => write!(f, "{}", v),
                 Err(_) => write!(f, "YCD<?? Error during Display ??>",),
@@ -168,14 +169,14 @@ impl From<&YcdValueType> for Value {
         match in_v {
             YcdValueType::Dict(v) => {
                 // TODO: Not ideal
-                Python::with_gil(|py| Value::from_object(YHashMap(v.clone_pyref(py))))
+                Python::attach(|py| Value::from_object(YHashMap(v.clone_pyref(py))))
             }
             YcdValueType::List(v) => v.iter().map(|v| v.into()).collect::<Vec<Value>>().into(),
             YcdValueType::YString(v) => Value::from(v.clone()),
             YcdValueType::Bool(v) => Value::from(*v),
             YcdValueType::Int(v) => Value::from(*v),
             YcdValueType::Float(v) => Value::from(*v),
-            YcdValueType::Ycd(v) => Python::with_gil(|py| Value::from_object(v.clone_ref(py))),
+            YcdValueType::Ycd(v) => Python::attach(|py| Value::from_object(v.clone_ref(py))),
         }
     }
 }
@@ -208,7 +209,7 @@ impl<'py> IntoPyObject<'py> for WValue {
 }
 
 #[derive(Debug)]
-struct VariableHelper(PyObject);
+struct VariableHelper(Py<PyAny>);
 
 impl Display for VariableHelper {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
@@ -218,14 +219,14 @@ impl Display for VariableHelper {
 
 impl Object for VariableHelper {
     fn call(self: &Arc<Self>, state: &State, args: &[Value]) -> Result<Value, Error> {
-        Python::with_gil(|py| TemplateRenderer::create_helper_fn(self.0.clone_ref(py))(state, args))
+        Python::attach(|py| TemplateRenderer::create_helper_fn(self.0.clone_ref(py))(state, args))
     }
 }
 
 impl Object for PyYamlConfigDocument {
     fn get_value(self: &Arc<Self>, key: &Value) -> Option<Value> {
         let name = key.as_str()?;
-        Python::with_gil(|py| {
+        Python::attach(|py| {
             let mut bow = self.0.borrow(py);
             bow.doc.get(name).map(|x| x.into()).or_else(|| {
                 if bow.bound_helpers.is_empty() {
@@ -250,7 +251,7 @@ impl Object for PyYamlConfigDocument {
         name: &str,
         args: &[Value],
     ) -> Result<Value, Error> {
-        Python::with_gil(|py| {
+        Python::attach(|py| {
             let mut bow = self.0.borrow(py);
             if bow.bound_helpers.is_empty() {
                 drop(bow);
@@ -303,7 +304,7 @@ impl Object for YHashMap<String, YcdValueType> {
                     .map(|(k, v)| Value::from_serialize(YHashMapItem(k.clone(), v)))
                     .collect::<Vec<Value>>(),
             )),
-            "values" => Python::with_gil(|py| {
+            "values" => Python::attach(|py| {
                 Ok(Value::from(
                     self.0
                         .values()

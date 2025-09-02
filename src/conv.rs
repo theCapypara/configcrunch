@@ -41,7 +41,7 @@ impl PyYamlConfigDocument {
     pub(crate) fn clone_ref(&self, py: Python) -> PyYamlConfigDocument {
         self.0.clone_ref(py).into()
     }
-    pub(crate) fn getattr(&self, py: Python, attr: &str) -> PyResult<PyObject> {
+    pub(crate) fn getattr(&self, py: Python, attr: &str) -> PyResult<Py<PyAny>> {
         self.0.getattr(py, attr)
     }
     pub(crate) fn borrow<'py>(&'py self, py: Python<'py>) -> PyRef<'py, YamlConfigDocument> {
@@ -67,7 +67,7 @@ pub(crate) enum YcdValueType {
 // only as a crutch! consider using ClonePyRef instead.
 impl Clone for YcdValueType {
     fn clone(&self) -> Self {
-        Python::with_gil(|py| self.clone_pyref(py))
+        Python::attach(|py| self.clone_pyref(py))
     }
 }
 
@@ -199,7 +199,7 @@ impl Serialize for PyYamlConfigDocument {
     where
         S: Serializer,
     {
-        Python::with_gil(|py| serializer.collect_map(&self.0.borrow(py).doc))
+        Python::attach(|py| serializer.collect_map(&self.0.borrow(py).doc))
     }
 }
 
