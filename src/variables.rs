@@ -101,7 +101,7 @@ impl DocumentTraverser {
                             in_str,
                             document.borrow(py).absolute_paths[0]
                         ));
-                        let err_obj: PyObject = (&err).into_py_any(py)?;
+                        let err_obj: Py<PyAny> = (&err).into_py_any(py)?;
                         let err_pyany: Bound<PyAny> = err_obj.extract(py)?;
                         err_pyany.setattr("__cause__", orig_err.into_py_any(py)?)?;
                         Err(err)
@@ -165,7 +165,7 @@ pub(crate) fn process_variables_for(
     py: Python,
     ycd: PyYamlConfigDocument,
     target: &str,
-    additional_helpers: Vec<PyObject>,
+    additional_helpers: Vec<Py<PyAny>>,
 ) -> PyResult<YcdValueType> {
     let mut renderer: TemplateRenderer = TemplateRenderer::new(ycd.clone_ref(py))?;
     renderer.add_helpers(py, additional_helpers);

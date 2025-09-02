@@ -23,14 +23,14 @@ use crate::{
 pub(crate) struct YamlConfigDocument {
     pub(crate) doc: YcdDict,
     /// The frozen Python representation of doc
-    pub(crate) frozen: Option<PyObject>,
+    pub(crate) frozen: Option<Py<PyAny>>,
     #[pyo3(get, set)]
     pub(crate) path: Option<String>,
     #[pyo3(get, set)]
     pub(crate) parent_doc: Option<Py<YamlConfigDocument>>,
     #[pyo3(get, set)]
     pub(crate) absolute_paths: Vec<String>,
-    pub(crate) bound_helpers: HashMap<String, PyObject>,
+    pub(crate) bound_helpers: HashMap<String, Py<PyAny>>,
     pub(crate) already_loaded_docs: Option<Vec<String>>,
 }
 
@@ -119,7 +119,7 @@ impl YamlConfigDocument {
     pub(crate) fn from_dict(
         cls: Bound<PyType>,
         py: Python,
-        dict: PyObject,
+        dict: Py<PyAny>,
     ) -> PyResult<PyYamlConfigDocument> {
         construct_new_ycd(
             py,
@@ -149,7 +149,7 @@ impl YamlConfigDocument {
 
     /// Schema that the document should be validated against.
     #[classmethod]
-    pub(crate) fn schema(_cls: Bound<PyType>) -> PyResult<PyObject> {
+    pub(crate) fn schema(_cls: Bound<PyType>) -> PyResult<Py<PyAny>> {
         debug_assert!(
             false,
             "The class method schema must be implemented. Do not call the parent method."
@@ -174,7 +174,7 @@ impl YamlConfigDocument {
     ///     on_list = ("a/c[]": ...)
     ///     on_dict = ("a/d[]": ...)
     #[classmethod]
-    fn subdocuments(_cls: Bound<PyType>) -> PyResult<PyObject> {
+    fn subdocuments(_cls: Bound<PyType>) -> PyResult<Py<PyAny>> {
         debug_assert!(
             false,
             "The class method subdocuments must be implemented. Do not call the parent method."
@@ -288,7 +288,7 @@ impl YamlConfigDocument {
         slf: Py<Self>,
         py: Python,
         target: &str,
-        additional_helpers: Vec<PyObject>,
+        additional_helpers: Vec<Py<PyAny>>,
     ) -> PyResult<YcdValueType> {
         process_variables_for(py, slf.into(), target, additional_helpers)
     }
@@ -306,7 +306,7 @@ impl YamlConfigDocument {
     ///  Example result::
     ///
     ///      something: 'value of parent field'
-    fn parent(slf: PyRef<Self>, py: Python) -> PyResult<PyObject> {
+    fn parent(slf: PyRef<Self>, py: Python) -> PyResult<Py<PyAny>> {
         match &slf.parent_doc {
             None => slf.into_py_any(py),
             Some(x) => x.into_py_any(py),
@@ -334,7 +334,7 @@ impl YamlConfigDocument {
 
     #[getter]
     /// Representation of the internal data. Object needs to be frozen first, otherwise this will raise a TypeError.
-    fn doc(&self, py: Python) -> PyResult<PyObject> {
+    fn doc(&self, py: Python) -> PyResult<Py<PyAny>> {
         match &self.frozen {
             None => {
                 //debug_assert!(false, "Document needs to be frozen first.");
@@ -380,7 +380,7 @@ impl YamlConfigDocument {
             .extract(py)
     }
 
-    fn __getitem__(slf: Py<Self>, py: Python, key: &str) -> PyResult<PyObject> {
+    fn __getitem__(slf: Py<Self>, py: Python, key: &str) -> PyResult<Py<PyAny>> {
         let args = PyTuple::new(py, [key])?;
         slf.getattr(py, "doc")?
             .getattr(py, "__getitem__")?
@@ -403,17 +403,17 @@ impl YamlConfigDocument {
         Ok(())
     }
 
-    fn __iter__(slf: PyRef<Self>) -> PyResult<PyObject> {
+    fn __iter__(slf: PyRef<Self>) -> PyResult<Py<PyAny>> {
         slf.doc(slf.py())?
             .getattr(slf.py(), "__iter__")?
             .call0(slf.py())
     }
 
-    fn items(slf: Py<Self>, py: Python) -> PyResult<PyObject> {
+    fn items(slf: Py<Self>, py: Python) -> PyResult<Py<PyAny>> {
         slf.getattr(py, "doc")
     }
 
-    fn to_dict(slf: Py<Self>, py: Python) -> PyResult<PyObject> {
+    fn to_dict(slf: Py<Self>, py: Python) -> PyResult<Py<PyAny>> {
         let frozen = &slf.borrow(py).frozen;
         match frozen {
             None => {
@@ -439,7 +439,7 @@ impl YamlConfigDocument {
 
     /// If not frozen: Returns a COPY of the key at the specified location
     /// Otherwise returns it from the frozen `self.doc`, it may or may not be a copy.
-    fn internal_get(slf: &Bound<Self>, key: &str) -> PyResult<PyObject> {
+    fn internal_get(slf: &Bound<Self>, key: &str) -> PyResult<Py<PyAny>> {
         match &slf.borrow().frozen {
             None => slf.borrow().doc.get(key).into_py_any(slf.py()),
             Some(f) => f
@@ -557,9 +557,9 @@ impl InternalAccessContext {
     fn __exit__(
         &mut self,
         py: Python,
-        _exc_type: Option<PyObject>,
-        _exc_value: Option<PyObject>,
-        _traceback: Option<PyObject>,
+        _exc_type: Option<Py<PyAny>>,
+        _exc_value: Option<Py<PyAny>>,
+        _traceback: Option<Py<PyAny>>,
     ) -> PyResult<()> {
         recursive_ycd_do(
             self.0.clone_ref(py),
