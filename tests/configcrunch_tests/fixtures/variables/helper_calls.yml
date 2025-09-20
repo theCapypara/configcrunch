@@ -4,4 +4,3 @@ base:
   more:
     a: "{{ simple_helper() }}"
     b: from_base
-    c: "{{ parent().more.b }}"

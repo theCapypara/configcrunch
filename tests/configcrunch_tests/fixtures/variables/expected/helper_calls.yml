@@ -4,4 +4,3 @@ base:
   more:
     a: simple
     b: from_base
-    c: from_base
