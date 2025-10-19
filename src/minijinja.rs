@@ -142,6 +142,7 @@ impl From<SimpleYcdValueType> for Value {
             SimpleYcdValueType::Bool(v) => Value::from(v),
             SimpleYcdValueType::Int(v) => Value::from(v),
             SimpleYcdValueType::Float(v) => Value::from(v),
+            SimpleYcdValueType::Null => Value::from(()),
         }
     }
 }
@@ -160,6 +161,7 @@ impl From<YcdValueType> for Value {
             YcdValueType::Int(v) => Value::from(v),
             YcdValueType::Float(v) => Value::from(v),
             YcdValueType::Ycd(v) => Value::from_object(v),
+            YcdValueType::Null => Value::from(()),
         }
     }
 }
@@ -177,6 +179,7 @@ impl From<&YcdValueType> for Value {
             YcdValueType::Int(v) => Value::from(*v),
             YcdValueType::Float(v) => Value::from(*v),
             YcdValueType::Ycd(v) => Python::attach(|py| Value::from_object(v.clone_ref(py))),
+            YcdValueType::Null => Value::from(()),
         }
     }
 }

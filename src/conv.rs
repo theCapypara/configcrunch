@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 use std::fmt::{Debug, Display, Formatter};
 
-use pyo3::exceptions;
 use pyo3::prelude::*;
 use pyo3::types::{PyBool, PyDict, PyFloat, PyInt, PyList, PyString};
+use pyo3::{IntoPyObjectExt, exceptions};
 use serde::{Deserialize, Serialize, Serializer};
 
 use crate::YamlConfigDocument;
@@ -52,7 +52,7 @@ impl PyYamlConfigDocument {
     }
 }
 
-#[derive(Serialize, Debug, IntoPyObject, IntoPyObjectRef)]
+#[derive(Serialize, Debug, Default)]
 #[serde(untagged)]
 pub(crate) enum YcdValueType {
     Ycd(PyYamlConfigDocument),
@@ -62,6 +62,46 @@ pub(crate) enum YcdValueType {
     Bool(bool),
     Int(i64),
     Float(f64),
+    #[default]
+    Null,
+}
+
+impl<'py> IntoPyObject<'py> for YcdValueType {
+    type Target = PyAny;
+    type Output = Bound<'py, Self::Target>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        match self {
+            YcdValueType::Ycd(v) => v.into_bound_py_any(py),
+            YcdValueType::Dict(v) => v.into_bound_py_any(py),
+            YcdValueType::List(v) => v.into_bound_py_any(py),
+            YcdValueType::YString(v) => v.into_bound_py_any(py),
+            YcdValueType::Bool(v) => v.into_bound_py_any(py),
+            YcdValueType::Int(v) => v.into_bound_py_any(py),
+            YcdValueType::Float(v) => v.into_bound_py_any(py),
+            YcdValueType::Null => Ok(py.None().into_bound(py)),
+        }
+    }
+}
+
+impl<'py> IntoPyObject<'py> for &YcdValueType {
+    type Target = PyAny;
+    type Output = Bound<'py, Self::Target>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        match self {
+            YcdValueType::Ycd(v) => v.into_bound_py_any(py),
+            YcdValueType::Dict(v) => v.into_bound_py_any(py),
+            YcdValueType::List(v) => v.into_bound_py_any(py),
+            YcdValueType::YString(v) => v.into_bound_py_any(py),
+            YcdValueType::Bool(v) => v.into_bound_py_any(py),
+            YcdValueType::Int(v) => v.into_bound_py_any(py),
+            YcdValueType::Float(v) => v.into_bound_py_any(py),
+            YcdValueType::Null => Ok(py.None().into_bound(py)),
+        }
+    }
 }
 
 // only as a crutch! consider using ClonePyRef instead.
@@ -81,6 +121,7 @@ impl ClonePyRef for YcdValueType {
             Self::Bool(v) => Self::Bool(*v),
             Self::Int(v) => Self::Int(*v),
             Self::Float(v) => Self::Float(*v),
+            Self::Null => Self::Null,
         }
     }
 }
@@ -96,7 +137,7 @@ impl YcdValueType {
 }
 
 /// Same as YcdValueType but without any containing Ycd; for deserialization
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
 #[serde(untagged)]
 pub(crate) enum SimpleYcdValueType {
     Dict(HashMap<String, SimpleYcdValueType>),
@@ -105,19 +146,22 @@ pub(crate) enum SimpleYcdValueType {
     Bool(bool),
     Int(i64),
     Float(f64),
+    #[default]
+    Null,
     //CatchAll(Py<PyAny>), // This extraction never fails
 }
 
 impl Display for YcdValueType {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            YcdValueType::Ycd(_) => write!(f, "<a document>"),
-            YcdValueType::Dict(_) => write!(f, "<a dictionary>"),
-            YcdValueType::List(_) => write!(f, "<a list>"),
-            YcdValueType::YString(v) => write!(f, "{}", v),
-            YcdValueType::Bool(v) => write!(f, "{}", v),
-            YcdValueType::Int(v) => write!(f, "{}", v),
-            YcdValueType::Float(v) => write!(f, "{}", v),
+            Self::Ycd(_) => write!(f, "<a document>"),
+            Self::Dict(_) => write!(f, "<a dictionary>"),
+            Self::List(_) => write!(f, "<a list>"),
+            Self::YString(v) => write!(f, "{}", v),
+            Self::Bool(v) => write!(f, "{}", v),
+            Self::Int(v) => write!(f, "{}", v),
+            Self::Float(v) => write!(f, "{}", v),
+            Self::Null => write!(f, "<None>"),
         }
     }
 }
@@ -125,18 +169,22 @@ impl Display for YcdValueType {
 impl Display for SimpleYcdValueType {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            SimpleYcdValueType::Dict(_) => write!(f, "<a dictionary>"),
-            SimpleYcdValueType::List(_) => write!(f, "<a list>"),
-            SimpleYcdValueType::YString(v) => write!(f, "{}", v),
-            SimpleYcdValueType::Bool(v) => write!(f, "{}", v),
-            SimpleYcdValueType::Int(v) => write!(f, "{}", v),
-            SimpleYcdValueType::Float(v) => write!(f, "{}", v),
+            Self::Dict(_) => write!(f, "<a dictionary>"),
+            Self::List(_) => write!(f, "<a list>"),
+            Self::YString(v) => write!(f, "{}", v),
+            Self::Bool(v) => write!(f, "{}", v),
+            Self::Int(v) => write!(f, "{}", v),
+            Self::Float(v) => write!(f, "{}", v),
+            Self::Null => write!(f, "<None>"),
         }
     }
 }
 
 impl<'py> FromPyObject<'py> for YcdValueType {
     fn extract_bound(v: &Bound<'py, PyAny>) -> PyResult<Self> {
+        if v.is_none() {
+            return Ok(YcdValueType::Null);
+        }
         match v.get_type().name()?.to_str()? {
             "dict" => {
                 if let Ok(v) = <HashMap<String, YcdValueType>>::extract_bound(v) {
@@ -230,6 +278,7 @@ impl From<SimpleYcdValueType> for YcdValueType {
             SimpleYcdValueType::Bool(v) => YcdValueType::Bool(v),
             SimpleYcdValueType::Int(v) => YcdValueType::Int(v),
             SimpleYcdValueType::Float(v) => YcdValueType::Float(v),
+            SimpleYcdValueType::Null => YcdValueType::Null,
         }
     }
 }

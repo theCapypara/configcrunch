@@ -4,7 +4,7 @@ YAML documents for the tests.
 """
 from typing import List, Tuple, Type
 
-from schema import Schema, Optional
+from schema import Schema, Optional, Or
 
 from configcrunch import YamlConfigDocument, DocReference, REMOVE, variable_helper
 
@@ -34,7 +34,7 @@ class Base(YamlConfigDocument):
         return Schema(
             {
                 Optional('$ref'): str,  # reference to other Base documents
-                Optional('str_field'): str,
+                Optional('str_field'): Or(str, None),
                 Optional('int_field'): int,
                 Optional('level_dict'): {
                     str: DocReference(Level)
