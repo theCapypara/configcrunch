@@ -85,10 +85,12 @@ pub(crate) fn path_in_repo(base_path: &Option<String>, reference_path: &str) -> 
             ]
             .iter()
             .collect();
-            let path: String = path.to_str().unwrap().to_string();
+
+            #[cfg_attr(not(target_family = "windows"), allow(unused_mut))]
+            let mut path: String = path.to_str().unwrap().to_string();
             #[cfg(target_family = "windows")]
             {
-                path.replace("\\", "/");
+                path = path.replace("\\", "/");
             }
             path
         }
