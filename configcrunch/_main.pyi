@@ -52,6 +52,8 @@ class YamlConfigDocument:
     @abstractmethod
     def header(cls) -> str: ...
     @classmethod
+    def json_schema(cls, main_schema_id: str) -> dict[str, Any]: ...
+    @classmethod
     @abstractmethod
     def schema(cls) -> Schema: ...
     @classmethod
@@ -124,8 +126,9 @@ class YamlConfigDocument:
 
 class DocReference:
     referenced_type: Type[YamlConfigDocument]
+    json_schema_id: Optional[str]
 
-    def __init__(self, referenced_doc_type: Type[YamlConfigDocument]): ...
+    def __init__(self, referenced_doc_type: Type[YamlConfigDocument], json_schema_id: Optional[str] = None): ...
     def validate(self, data): ...
 
 

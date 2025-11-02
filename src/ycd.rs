@@ -147,6 +147,25 @@ impl YamlConfigDocument {
         ))
     }
 
+    #[classmethod]
+    pub(crate) fn json_schema(_cls: Bound<PyType>, main_schema_id: String, py: Python) -> PyResult<Py<PyAny>> {
+        // Get the main schema instance
+        let schema = _cls.getattr("schema")?.call0()?;
+        // Get the schema dict
+        let schema_dict: Bound<PyDict> = schema.getattr("schema")?.cast_into()?;
+        // Recursively replace all DocReferences
+        replace_refs_with_schema(schema_dict, py)?;
+
+        // TODO: Replace refs with DocReference variable in result schema
+        //       Remove definition from result schema
+        //       Change return type to dict[str, dict[str, Any]]
+        //       Return schemas in format: {schema_id: schema}
+        schema
+            .getattr("json_schema")?
+            .call1((main_schema_id, ))?
+            .into_py_any(py)
+    }
+
     /// Schema that the document should be validated against.
     #[classmethod]
     pub(crate) fn schema(_cls: Bound<PyType>) -> PyResult<Py<PyAny>> {
@@ -583,13 +602,16 @@ impl InternalAccessContext {
 pub(crate) struct DocReference {
     #[pyo3(get)]
     referenced_type: Py<PyType>, // Type[YamlConfigDocument]
+    #[pyo3(get)]
+    json_schema_id: Option<String>,
 }
 
 #[pymethods]
 impl DocReference {
     #[new]
-    pub(crate) fn new(referenced_type: Py<PyType>) -> Self {
-        Self { referenced_type }
+    #[pyo3(signature = (referenced_type, json_schema_id=None))]
+    pub(crate) fn new(referenced_type: Py<PyType>, json_schema_id: Option<String>) -> Self {
+        Self { referenced_type, json_schema_id }
     }
 
     fn __repr__(&self, py: Python) -> PyResult<String> {
@@ -674,4 +696,32 @@ where
             .try_for_each(|vv| _recursive_ycd_do_impl(vv, cb, py)),
         _ => Ok(()),
     }
+}
+
+fn replace_refs_with_schema(schema_dict: Bound<PyDict>, py: Python) -> PyResult<()> {
+    for (key, value) in schema_dict.iter() {
+        if value.is_instance_of::<PyDict>() {
+            let value_dict: Bound<PyDict> = value.cast_into::<PyDict>()?;
+            replace_refs_with_schema(value_dict, py)?;
+        }
+        else if value.is_instance_of::<DocReference>() {
+            let value: Bound<DocReference> = value.extract()?;
+            let value_schema = value.borrow()
+                .referenced_type
+                .extract::<Bound<PyType>>(py)?
+                .getattr("schema")?
+                .call0()?;
+            let schema_class = PyModule::import(py, "schema")?.getattr("Schema")?;
+            let kwargs = PyDict::new(py);
+            kwargs.set_item("name", value_schema.getattr("name")?)?;
+            kwargs.set_item("description", value_schema.getattr("description")?)?;
+            kwargs.set_item("ignore_extra_keys", value_schema.getattr("ignore_extra_keys")?)?;
+            kwargs.set_item("as_reference", true)?;
+
+            schema_dict.set_item(key, schema_class
+                .call((value_schema.getattr("schema")?, ), Some(&kwargs))?
+            )?;
+        }
+    }
+    Ok(())
 }
