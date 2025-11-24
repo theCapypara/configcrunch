@@ -13,7 +13,7 @@ jobs:
       matrix:
         python-version: [ "3.11" , "3.12" , "3.13", "3.14" ]
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v6
         with:
@@ -54,7 +54,7 @@ jobs:
     name: Build SDist
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Build SDist
         run: pipx run build --sdist
       - uses: actions/upload-artifact@v4
@@ -84,7 +84,7 @@ jobs:
     steps:
       # For tags we assume the version in pyproject.toml is correct!
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           submodules: 'recursive'
       - name: Rewrite version for dev if not tag
