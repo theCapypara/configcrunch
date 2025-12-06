@@ -7,4 +7,7 @@ create_exception!(_main, InvalidDocumentError, ConfigcrunchError);
 create_exception!(_main, InvalidHeaderError, InvalidDocumentError);
 create_exception!(_main, InvalidRemoveError, InvalidDocumentError);
 
+create_exception!(_main, JsonSchemaMultiReferenceError, ConfigcrunchError);
+create_exception!(_main, JsonSchemaDefinitionNotFoundError, ConfigcrunchError);
+
 pyo3::import_exception!(schema, SchemaError);
