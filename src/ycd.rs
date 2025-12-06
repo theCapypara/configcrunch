@@ -10,7 +10,7 @@ use crate::conv::{PyYamlConfigDocument, YcdDict, YcdValueType};
 use crate::pyutil::ClonePyRef;
 use crate::variables::{process_variables, process_variables_for};
 use crate::{
-    CircularDependencyError, InvalidDocumentError, InvalidHeaderError, REF, SchemaError,
+    CircularDependencyError, InvalidDocumentError, InvalidHeaderError, JsonSchemaDefinitionNotFoundError, JsonSchemaMultiReferenceError, REF, SchemaError,
     construct_new_ycd, delete_remove_markers, load_subdocuments, load_yaml_file,
     recursive_docs_to_dicts, resolve_and_merge,
 };
@@ -148,20 +148,90 @@ impl YamlConfigDocument {
     }
 
     #[classmethod]
-    pub(crate) fn json_schema(_cls: Bound<PyType>, main_schema_id: String, py: Python) -> PyResult<Py<PyAny>> {
-        // Get the main schema instance
+    pub(crate) fn json_schema<'py>(_cls: Bound<'py, PyType>, main_schema_id: String, py: Python<'py>) -> PyResult<HashMap<String, Bound<'py, PyDict>>> {
+        // NOTE: This is specific to draft-07 JSON schemas, starting with 2019-09 "$defs" should be used instead.
+        const DEFINITIONS_KEYWORD: &str = "definitions";
+        const JSON_SCHEMA_DIALECT: &str = "draft-07";
+
+        let mut json_schemas: HashMap<String, Bound<PyDict>> = HashMap::new();
+        let mut schema_id_map: HashMap<String, String> = HashMap::new();
+        // Get the main schema object
         let schema = _cls.getattr("schema")?.call0()?;
         // Recursively replace all DocReferences
-        let modified_schema = replace_refs_with_schema(schema, py)?;
-
-        // TODO: Replace refs with DocReference variable in result schema
-        //       Remove definition from result schema
-        //       Change return type to dict[str, dict[str, Any]]
-        //       Return schemas in format: {schema_id: schema}
-        modified_schema
+        let modified_schema = replace_refs_with_schema(schema, py, &mut schema_id_map)?;
+        let json_schema = modified_schema
             .getattr("json_schema")?
-            .call1((main_schema_id, ))?
-            .into_py_any(py)
+            .call1((&main_schema_id, ))?
+            .cast_into::<PyDict>()?;
+        json_schemas.insert(main_schema_id.clone(), json_schema);
+        
+        // The generated schema doesn't need to be modified
+        if schema_id_map.is_empty() {
+            return Ok(json_schemas);
+        }
+
+        // Get the JSON Schema dialect of the generated schema
+        let Some(dialect_value) = json_schemas[&main_schema_id].get_item("$schema")? else {
+            return Err(exceptions::PyKeyError::new_err(
+                "No JSON Schema dialect was specified for the generated schema."
+            ));
+        };
+        let dialect_value: String = dialect_value.extract()?;
+
+        // TODO: Match $schema for: http(s?)://json-schema.org/draft-07/schema(#?)
+
+        let Some(definitions) = json_schemas[&main_schema_id].get_item(DEFINITIONS_KEYWORD)? else {
+            return Err(exceptions::PyKeyError::new_err(format!(
+                "{} container not found. Was this schema generated for the {} JSON Schema dialect?",
+                DEFINITIONS_KEYWORD,
+                JSON_SCHEMA_DIALECT
+            )));
+        };
+
+        // Rewrite $refs
+        replace_ref_values(&json_schemas[&main_schema_id], &schema_id_map)?;
+
+        // Add mapped schemas to result map
+        let definitions = definitions.cast_into::<PyDict>()?;
+        for (schema_name, schema_id) in schema_id_map {
+            let Some(schema_def) = definitions.get_item(&schema_name)? else {
+                return Err(JsonSchemaDefinitionNotFoundError::new_err(format!(
+                    "No schema definition found for: {}",
+                    schema_name
+                )));
+            };
+            if let Some(existing_schema) = json_schemas.get(&schema_id) {
+                return Err(JsonSchemaMultiReferenceError::new_err(format!(
+                    "Unable to use id '{}' for schema '{}'. The id is already used by another schema: {:?}",
+                    schema_id,
+                    schema_name,
+                    existing_schema.get_item("title")?
+                )));
+            }
+
+            let schema_def = schema_def.cast_into::<PyDict>()?;
+            schema_def.set_item("$id", schema_id.clone())?;
+            schema_def.set_item("$schema", dialect_value.clone())?;
+
+            json_schemas.insert(schema_id.clone(), schema_def);
+            definitions.del_item(&schema_name)?;
+        }
+
+        // Copy remaining inline definitions to all other schemas
+        if ! definitions.is_empty() {
+            for (schema_id, schema_def) in &json_schemas {
+                if *schema_id == main_schema_id {
+                    continue;
+                }
+                schema_def.set_item(DEFINITIONS_KEYWORD, definitions.clone())?;
+            }
+        }
+        else {
+            // Remove empty definitions container
+            json_schemas[&main_schema_id].del_item(DEFINITIONS_KEYWORD)?;
+        }
+
+        Ok(json_schemas)
     }
 
     /// Schema that the document should be validated against.
@@ -696,49 +766,102 @@ where
     }
 }
 
-fn replace_refs_with_schema<'py>(schema: Bound<'py, PyAny>, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
-    let schema_class: Bound<'py, PyAny> = PyModule::import(py, "schema")?.getattr("Schema")?;
+/// Replaces all DocReference objects in the specified schema with schema objects.
+/// Returns the modified schema.
+/// Mappings for a referenced schema name to its corresponding json_schema_id (when it contains a value) will be added to schema_id_map.
+fn replace_refs_with_schema<'py>(schema: Bound<'py, PyAny>, py: Python<'py>, schema_id_map: &mut HashMap<String, String>) -> PyResult<Bound<'py, PyAny>> {
+    let schema_class = PyModule::import(py, "schema")?.getattr("Schema")?;
     if schema.is_instance(&schema_class)? {
-        let child_schema: Bound<'py, PyAny> = schema.getattr("schema")?;
-        let new_child_schema: Bound<'py, PyAny> = replace_refs_with_schema(child_schema, py)?;
-        if ! new_child_schema.is_instance_of::<PyDict>() {
+        let child_schema = schema.getattr("schema")?;
+        let child_schema = replace_refs_with_schema(child_schema, py, schema_id_map)?;
+        if ! child_schema.is_instance_of::<PyDict>() {
             // Replace the internal _schema attribute
-            schema.setattr("_schema", new_child_schema)?;
+            schema.setattr("_schema", child_schema)?;
         }
     }
     else if schema.is_instance_of::<PyDict>() {
-        let schema_dict: Bound<'py, PyDict> = schema.cast_into::<PyDict>()?;
+        let schema_dict = schema.cast_into::<PyDict>()?;
         for (key, value) in schema_dict.iter() {
-            let new_value: Bound<'py, PyAny> = replace_refs_with_schema(value, py)?;
+            let new_value = replace_refs_with_schema(value, py, schema_id_map)?;
             schema_dict.set_item(key, new_value)?;
         }
 
         return Ok(schema_dict.into_any());
     }
     else if schema.is_instance_of::<DocReference>() {
-        let doc_ref: Bound<'py, DocReference> = schema.extract()?;
+        let doc_ref: Bound<DocReference> = schema.extract()?;
+        let (doc_id_map, doc_schema) = get_schema_for_ref(doc_ref, py)?;
+        
+        if let Some((schema_name, schema_id)) = doc_id_map {
+            // Add new mapping entry if possible
+            let mapped_schema_id = schema_id_map.entry(schema_name.clone()).or_insert(schema_id.clone());
+            if *mapped_schema_id != schema_id {
+                return Err(JsonSchemaMultiReferenceError::new_err(format!(
+                    "Unable to map the schema '{}' to the specified id '{}'. The schema is already mapped to: {}",
+                    schema_name,
+                    schema_id,
+                    *mapped_schema_id
+                )));
+            }
+        }
 
-        return replace_refs_with_schema(get_schema_for_ref(doc_ref, py)?, py);
+        return replace_refs_with_schema(doc_schema, py, schema_id_map);
     }
     
     // Return the (modified) object
     return Ok(schema);
 }
 
-fn get_schema_for_ref<'py>(doc_ref: Bound<'py, DocReference>, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
-    let schema_class: Bound<'py, PyAny> = PyModule::import(py, "schema")?.getattr("Schema")?;
-    let doc_schema: Bound<'py, PyAny> = doc_ref.borrow()
+/// Returns a tuple of the schema_id tuple and the new schema object.
+/// The schema_id tuple contains the name of the schema and the json_schema_id.
+/// It may also be None if the json_schema_id of the specified DocReference doesn't have a value.
+fn get_schema_for_ref<'py>(doc_ref: Bound<'py, DocReference>, py: Python<'py>) -> PyResult<(Option<(String, String)>, Bound<'py, PyAny>)> {
+    let schema_class = PyModule::import(py, "schema")?.getattr("Schema")?;
+    let doc_schema = doc_ref.borrow()
         .referenced_type
-        .extract::<Bound<'py, PyType>>(py)?
+        .extract::<Bound<PyType>>(py)?
         .getattr("schema")?
         .call0()?;
+
+    let schema_name: String = doc_schema.getattr("name")?.extract()?;
     
-    let kwargs: Bound<'py, PyDict> = PyDict::new(py);
+    let kwargs = PyDict::new(py);
     // Ignore Schema.error, since it's not used for json schemas
-    kwargs.set_item("name", doc_schema.getattr("name")?)?;
+    kwargs.set_item("name", &schema_name)?;
     kwargs.set_item("description", doc_schema.getattr("description")?)?;
     kwargs.set_item("ignore_extra_keys", doc_schema.getattr("ignore_extra_keys")?)?;
     kwargs.set_item("as_reference", true)?;
 
-    schema_class.call((doc_schema.getattr("schema")?, ), Some(&kwargs))
+    let schema_object = schema_class.call((doc_schema.getattr("schema")?, ), Some(&kwargs))?;
+    match doc_ref.borrow().json_schema_id.clone() {
+        Some(json_schema_id) => Ok((Some((schema_name, json_schema_id)), schema_object)),
+        None => Ok((None, schema_object)),
+    }
+}
+
+fn replace_ref_values(json_schema: &Bound<PyDict>, schema_id_map: &HashMap<String, String>) -> PyResult<()> {
+    for (key, value) in json_schema.iter() {
+        if value.is_instance_of::<PyDict>() {
+            replace_ref_values(&value.cast_into()?, schema_id_map)?;
+            continue;
+        }
+        let key: String = key.extract()?;
+        if key == "$ref" {
+            let Ok(value) = value.extract::<String>() else {
+                continue;
+            };
+            // NOTE: Specific to draft-07
+            let Some(def_name) = value.strip_prefix("#/definitions/") else {
+                return Err(exceptions::PyValueError::new_err(format!(
+                    "Unexpected JSON schema reference: {}",
+                    value
+                )));
+            };
+            let Some(schema_id) = schema_id_map.get(def_name) else {
+                continue;
+            };
+            json_schema.set_item(key, schema_id)?
+        }
+    }
+    Ok(())
 }
