@@ -54,7 +54,8 @@ class YamlConfigDocument:
     @classmethod
     def json_schema(cls, main_schema_id: str) -> dict[str, dict[str, Any]]:
         """
-        :TODO:
+        Generates Draft-07 JSON schemas of this document and its references.
+        Returns a dict which contains key-value pairs of the JSON schema ids and the schemas.
         """
         ...
     @classmethod
