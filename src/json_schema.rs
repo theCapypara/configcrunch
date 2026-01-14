@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use pyo3::prelude::*;
 use pyo3::exceptions;
-use pyo3::types::{PyDict, PyType};
+use pyo3::types::{PyDict, PyList, PyType};
 
 use crate::{YamlConfigDocument, DocReference, JsonSchemaDefinitionNotFoundError, JsonSchemaMultiReferenceError};
 
@@ -95,6 +95,16 @@ fn replace_refs_with_schema<'py>(schema: Bound<'py, PyAny>, py: Python<'py>, sch
         }
 
         return Ok(schema_dict.into_any());
+    }
+    else if schema.is_instance_of::<PyList>() {
+        let schema_array = schema.cast_into::<PyList>()?;
+        for index in  0..schema_array.len() {
+            let item = schema_array.get_item(index)?;
+            let new_item = replace_refs_with_schema(item, py, schema_id_map)?;
+            schema_array.set_item(index, new_item)?;
+        }
+
+        return Ok(schema_array.into_any());
     }
     else if schema.is_instance_of::<DocReference>() {
         let doc_ref: Bound<DocReference> = schema.extract()?;
