@@ -1,0 +1,110 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "required_json_refs_id",
+    "title": "required_json_refs",
+    "type": "object",
+    "properties": {
+        "str_field": {
+            "type": "string"
+        },
+        "required_ref_object": {
+            "$ref": "no_ref_id"
+        },
+        "nested_object": {
+            "type": "object",
+            "properties": {
+                "nested_ref_object": {
+                    "$ref": "no_ref_id"
+                }
+            },
+            "required": [
+                "nested_ref_object"
+            ],
+            "additionalProperties": false
+        },
+        "list_ref_objects": {
+            "type": "array",
+            "items": {
+                "$ref": "no_ref_id"
+            }
+        },
+        "no_id_ref_object": {
+            "$ref": "#/definitions/level"
+        }
+    },
+    "required": [
+        "str_field",
+        "required_ref_object",
+        "nested_object",
+        "list_ref_objects",
+        "no_id_ref_object"
+    ],
+    "additionalProperties": false,
+    "definitions": {
+        "level": {
+            "title": "level",
+            "type": "object",
+            "properties": {
+                "$ref": {
+                    "type": "string"
+                },
+                "$name": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "base_ref": {
+                    "$ref": "#/definitions/base"
+                },
+                "more": {}
+            },
+            "required": [
+                "name"
+            ],
+            "additionalProperties": false
+        },
+        "base": {
+            "title": "base",
+            "type": "object",
+            "properties": {
+                "$ref": {
+                    "type": "string"
+                },
+                "str_field": {
+                    "anyOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
+                },
+                "int_field": {
+                    "type": "integer"
+                },
+                "level_dict": {
+                    "type": "object",
+                    "properties": {},
+                    "required": [],
+                    "additionalProperties": {
+                        "$ref": "#/definitions/level"
+                    }
+                },
+                "level_array": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/level"
+                    }
+                },
+                "level_direct": {
+                    "$ref": "#/definitions/level"
+                },
+                "more": {}
+            },
+            "required": [],
+            "additionalProperties": false
+        }
+    }
+}

@@ -1,0 +1,43 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "no_ref_id",
+    "title": "noref",
+    "type": "object",
+    "properties": {
+        "bool_field": {
+            "type": "boolean"
+        },
+        "int_or_string_field": {
+            "anyOf": [
+                {
+                    "type": "integer"
+                },
+                {
+                    "type": "string"
+                }
+            ]
+        },
+        "optional_regex_field": {
+            "type": "string",
+            "pattern": "v\\d+"
+        },
+        "nested_object": {
+            "type": "object",
+            "properties": {
+                "nested_bool_field": {
+                    "type": "boolean"
+                }
+            },
+            "required": [
+                "nested_bool_field"
+            ],
+            "additionalProperties": false
+        }
+    },
+    "required": [
+        "bool_field",
+        "int_or_string_field",
+        "nested_object"
+    ],
+    "additionalProperties": false
+}

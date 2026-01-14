@@ -23,7 +23,7 @@ classifiers = [
     "Programming Language :: Python :: 3.14",
 ]
 dependencies = [
-    "schema >= 0.7"
+    "schema @ git+https://github.com/jeliebig/schema.git@json-schema-improvements"
 ]
 
 [project.urls]

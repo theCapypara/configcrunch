@@ -582,14 +582,17 @@ impl InternalAccessContext {
 #[pyclass(module = "_main")]
 pub(crate) struct DocReference {
     #[pyo3(get)]
-    referenced_type: Py<PyType>, // Type[YamlConfigDocument]
+    pub(crate) referenced_type: Py<PyType>, // Type[YamlConfigDocument]
+    #[pyo3(get)]
+    pub(crate) json_schema_id: Option<String>,
 }
 
 #[pymethods]
 impl DocReference {
     #[new]
-    pub(crate) fn new(referenced_type: Py<PyType>) -> Self {
-        Self { referenced_type }
+    #[pyo3(signature = (referenced_type, json_schema_id=None))]
+    pub(crate) fn new(referenced_type: Py<PyType>, json_schema_id: Option<String>) -> Self {
+        Self { referenced_type, json_schema_id }
     }
 
     fn __repr__(&self, py: Python) -> PyResult<String> {

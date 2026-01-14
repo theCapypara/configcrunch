@@ -71,3 +71,30 @@ detailing the issue.
     ...   print(err)
     Key 'this' error:
     123 should be instance of 'str'
+
+JSON Schema generation
+~~~~~~~~~~~~~~~~~~~~~~
+
+You can generate Draft-07 JSON Schemas for documents
+by invoking the ``json_schema`` method.
+
+If you are overriding ``schema`` for your document
+and return a non-schema object it'll need to be an instance of
+``dict`` or ``list`` and provide the following properties and methods:
+
+- ``name: str``: The name of the schema.
+
+- ``description: str|None``: The description of the schema.
+
+- ``ignore_extra_keys: bool``: Whether the schema allows additional keys
+  which aren't explictly defined.
+
+- ``schema: schema.Schema|dict|list``: The inner schema, this should usually
+  return a ``dict``.
+
+- ``json_schema(json_schema_id: str) -> dict``: The method generating
+  the JSON schema, based on the values of the properties above.
+
+If your custom schema class is a child class of ``schema.Schema``,
+it also needs to provide a writable ``_schema`` attribute,
+which is usually the backing field of the ``schema`` property.

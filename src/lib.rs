@@ -13,6 +13,7 @@ pub(crate) const FORCE_STRING: &str = "__forcestring__";
 
 mod conv;
 pub(crate) mod errors;
+mod json_schema;
 pub(crate) mod loader;
 pub(crate) mod merger;
 mod minijinja;

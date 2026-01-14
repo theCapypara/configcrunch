@@ -1,0 +1,69 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "level_ref_id",
+    "title": "level",
+    "type": "object",
+    "properties": {
+        "$ref": {
+            "type": "string"
+        },
+        "$name": {
+            "type": "string"
+        },
+        "name": {
+            "type": "string"
+        },
+        "base_ref": {
+            "$ref": "#/definitions/base"
+        },
+        "more": {}
+    },
+    "required": [
+        "name"
+    ],
+    "additionalProperties": false,
+    "definitions": {
+        "base": {
+            "title": "base",
+            "type": "object",
+            "properties": {
+                "$ref": {
+                    "type": "string"
+                },
+                "str_field": {
+                    "anyOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
+                },
+                "int_field": {
+                    "type": "integer"
+                },
+                "level_dict": {
+                    "type": "object",
+                    "properties": {},
+                    "additionalProperties": {
+                        "$ref": "#"
+                    },
+                    "required": []
+                },
+                "level_array": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#"
+                    }
+                },
+                "level_direct": {
+                    "$ref": "#"
+                },
+                "more": {}
+            },
+            "required": [],
+            "additionalProperties": false
+        }
+    }
+}

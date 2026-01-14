@@ -1,0 +1,15 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "json_ref_level_id",
+    "title": "json_ref_level",
+    "type": "object",
+    "properties": {
+        "level_ref_object": {
+            "$ref": "level_ref_id"
+        }
+    },
+    "required": [
+        "level_ref_object"
+    ],
+    "additionalProperties": false
+}
