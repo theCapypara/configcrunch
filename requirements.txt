@@ -1,2 +1,2 @@
-schema==0.7.8
+schema @ git+https://github.com/jeliebig/schema.git@json-schema-improvements
 setuptools_rust
