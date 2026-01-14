@@ -67,6 +67,11 @@ impl YamlConfigDocument {
             json_schemas[&main_schema_id].del_item(DEFINITIONS_KEYWORD)?;
         }
 
+        // Improve self references
+        for (schema_id, schema_def) in &json_schemas {
+            update_self_refs(schema_def, schema_id)?;
+        }
+
         Ok(json_schemas)
     }
 }
@@ -267,6 +272,25 @@ fn copy_required_definitions_to_schemas<'py>(json_schemas: &HashMap<String, Boun
 
         // Assign new definitions dict
         schema_def.set_item(DEFINITIONS_KEYWORD, schema_definitions)?;
+    }
+    Ok(())
+}
+
+fn update_self_refs(json_schema: &Bound<PyDict>, schema_id: &String) -> PyResult<()> {
+    for (key, value) in json_schema.iter() {
+        if value.is_instance_of::<PyDict>() {
+            update_self_refs(&value.cast_into()?, schema_id)?;
+            continue;
+        }
+        let key: String = key.extract()?;
+        if key == "$ref" {
+            let Ok(value) = value.extract::<String>() else {
+                continue;
+            };
+            if value == *schema_id {
+                json_schema.set_item(key, "#")?    
+            }  
+        }
     }
     Ok(())
 }
