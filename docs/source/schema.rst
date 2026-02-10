@@ -82,7 +82,7 @@ If you are overriding ``schema`` for your document
 and return a non-schema object it'll need to be an instance of
 ``dict`` or ``list`` and provide the following properties and methods:
 
-- ``name: str``: The name of the schema.
+- ``name: str|None``: The name of the schema.
 
 - ``description: str|None``: The description of the schema.
 
