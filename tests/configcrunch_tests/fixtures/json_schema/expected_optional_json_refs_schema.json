@@ -27,7 +27,7 @@
             }
         },
         "no_id_ref_object": {
-            "$ref": "#/definitions/level"
+            "$ref": "#/definitions/Level"
         }
     },
     "required": [
@@ -36,8 +36,8 @@
     ],
     "additionalProperties": false,
     "definitions": {
-        "level": {
-            "title": "level",
+        "Level": {
+            "title": "Level",
             "type": "object",
             "properties": {
                 "$ref": {
@@ -50,7 +50,7 @@
                     "type": "string"
                 },
                 "base_ref": {
-                    "$ref": "#/definitions/base"
+                    "$ref": "#/definitions/Base"
                 },
                 "more": {}
             },
@@ -59,8 +59,8 @@
             ],
             "additionalProperties": false
         },
-        "base": {
-            "title": "base",
+        "Base": {
+            "title": "Base",
             "type": "object",
             "properties": {
                 "$ref": {
@@ -84,17 +84,17 @@
                     "properties": {},
                     "required": [],
                     "additionalProperties": {
-                        "$ref": "#/definitions/level"
+                        "$ref": "#/definitions/Level"
                     }
                 },
                 "level_array": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/level"
+                        "$ref": "#/definitions/Level"
                     }
                 },
                 "level_direct": {
-                    "$ref": "#/definitions/level"
+                    "$ref": "#/definitions/Level"
                 },
                 "more": {}
             },

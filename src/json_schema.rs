@@ -139,13 +139,18 @@ impl<'py> JsonSchemaBuilder<'py> {
 
     fn get_schema_for_ref(&mut self, doc_ref: Bound<'py, DocReference>, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
         let schema_class = PyModule::import(py, "schema")?.getattr("Schema")?;
-        let doc_schema = doc_ref.borrow()
+        let doc_type: Bound<PyType> = doc_ref.borrow()
             .referenced_type
-            .extract::<Bound<PyType>>(py)?
+            .extract(py)?;
+        let doc_schema = doc_type
             .getattr("schema")?
             .call0()?;
 
-        let schema_name: String = doc_schema.getattr("name")?.extract()?;
+        // Get name of the schema or fallback to the name of the referenced type
+        let schema_name: String = match doc_schema.getattr("name")?.extract()? {
+            Some(name) => name,
+            None => doc_type.name()?.extract()?,
+        };
         let schema_id = doc_ref.borrow().json_schema_id.clone();
 
         let kwargs = PyDict::new(py);

@@ -43,7 +43,6 @@ class Base(YamlConfigDocument):
                 Optional('level_direct'): DocReference(Level),
                 Optional('more'): lambda any: True
             },
-            name="base",
         )
 
     @classmethod
@@ -85,7 +84,6 @@ class Level(YamlConfigDocument):
                 Optional('base_ref'): DocReference(Base),
                 Optional('more'): lambda any: True
             },
-            name="level",
         )
 
     @classmethod

@@ -1,7 +1,7 @@
 {
     "$schema": "http://json-schema.org/draft-07/schema#",
     "$id": "level_ref_id",
-    "title": "level",
+    "title": "Level",
     "type": "object",
     "properties": {
         "$ref": {
@@ -14,7 +14,7 @@
             "type": "string"
         },
         "base_ref": {
-            "$ref": "#/definitions/base"
+            "$ref": "#/definitions/Base"
         },
         "more": {}
     },
@@ -23,8 +23,8 @@
     ],
     "additionalProperties": false,
     "definitions": {
-        "base": {
-            "title": "base",
+        "Base": {
+            "title": "Base",
             "type": "object",
             "properties": {
                 "$ref": {
