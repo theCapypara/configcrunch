@@ -16,4 +16,4 @@ pyo3 = { version = "0.28", features = ["extension-module"] }
 serde = { version = "1", features = ["derive"] }
 serde_yaml = "0.9"
 minijinja = "2"
-path-absolutize = "3"
+path-absolutize = "4"
